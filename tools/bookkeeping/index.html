@@ -497,6 +497,12 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 .donut-pct-out{font-size:9px;font-weight:700;fill:#4f5752}
 .donut-guide{stroke:#9aa19a;stroke-width:.7;fill:none}
 </style>
+
+<style id="v32-final-fixes">
+.donut-pct-out{font-size:7.4px!important;font-weight:700!important}
+#insightList{display:block!important;min-height:48px!important}
+#insightList .insight{display:flex!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1088,35 +1094,46 @@ function renderDonut(m){
           const start=acc; acc+=pct;
           const mid=start+pct/2, angle=mid*2*Math.PI-Math.PI/2;
           const x1=cx+Math.cos(angle)*66, y1=cy+Math.sin(angle)*66;
-          labelItems.push({pct,angle,x1,y1,right:Math.cos(angle)>=0});
+          labelItems.push({pct,angle,x1,y1,right:Math.cos(angle)>=0,color:x.color,key:x.key});
           return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
         }).join("");
-        // 百分比标签自动避让：
-        // 先按左右两侧拆分，再按原始Y从上到下排序；
-        // 相邻标签至少保持固定距离，小扇区会自动一高一低、一左一右分散。
+        // 百分比引导线：按左右两侧分别做“单调避让”。
+        // 标签Y顺序永远跟扇区锚点Y顺序一致，因此同侧引导线不会互相交叉。
         const layoutSide=(arr,right)=>{
           arr.sort((a,b)=>a.y1-b.y1);
-          const minGap=14, top=8, bottom=132;
-          let prev=top-minGap;
-          arr.forEach(v=>{
-            const naturalY=cy+Math.sin(v.angle)*78;
-            v.labelY=Math.max(naturalY,prev+minGap);
-            prev=v.labelY;
-          });
-          if(arr.length && arr[arr.length-1].labelY>bottom){
-            const shift=arr[arr.length-1].labelY-bottom;
-            arr.forEach(v=>v.labelY-=shift);
+          const n=arr.length;
+          if(!n) return;
+          const minGap=13;
+          const top=10, bottom=130;
+          const natural=arr.map(v=>Math.max(top,Math.min(bottom,cy+Math.sin(v.angle)*79)));
+          const ys=[...natural];
+
+          // 向下推开
+          for(let i=1;i<n;i++) ys[i]=Math.max(ys[i],ys[i-1]+minGap);
+          // 超出底部后整体上移
+          if(ys[n-1]>bottom){
+            const d=ys[n-1]-bottom;
+            for(let i=0;i<n;i++) ys[i]-=d;
           }
-          for(let i=arr.length-2;i>=0;i--){
-            if(arr[i+1].labelY-arr[i].labelY<minGap)
-              arr[i].labelY=arr[i+1].labelY-minGap;
+          // 再从下往上校正，确保最小间距
+          for(let i=n-2;i>=0;i--) ys[i]=Math.min(ys[i],ys[i+1]-minGap);
+          // 如果顶部越界，再整体下移
+          if(ys[0]<top){
+            const d=top-ys[0];
+            for(let i=0;i<n;i++) ys[i]+=d;
           }
+
           arr.forEach((v,i)=>{
-            // 顶部密集小扇区额外交错横向距离，避免文字叠在一起
-            const dense=Math.abs(v.y1-cy)>42;
             v.side=right?1:-1;
-            v.elbowX=cx+v.side*(dense ? 76+(i%2)*9 : 74);
-            v.endX=v.elbowX+v.side*(12+(i%2)*5);
+            v.labelY=ys[i];
+            // 第一折点只向圆外走，第二段再去标签Y；
+            // 同侧标签保持相同X通道，配合单调Y即可避免交叉。
+            const radialX=cx+Math.cos(v.angle)*73;
+            const radialY=cy+Math.sin(v.angle)*73;
+            v.radialX=radialX;
+            v.radialY=radialY;
+            v.elbowX=cx+v.side*82;
+            v.endX=cx+v.side*91;
             v.textX=v.endX+v.side*3;
           });
         };
@@ -1125,7 +1142,8 @@ function renderDonut(m){
         layoutSide(left,false);
         layoutSide(right,true);
         const guides=[...left,...right].map(v=>{
-          return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${v.elbowX.toFixed(1)} ${v.labelY.toFixed(1)} L ${v.endX.toFixed(1)} ${v.labelY.toFixed(1)}" class="donut-guide"></path><text x="${v.textX.toFixed(1)}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" text-anchor="${v.side>0?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
+          const pctText=(v.pct*100).toFixed(v.pct<0.01?2:1)+"%";
+          return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${v.radialX.toFixed(1)} ${v.radialY.toFixed(1)} L ${v.elbowX.toFixed(1)} ${v.labelY.toFixed(1)} L ${v.endX.toFixed(1)} ${v.labelY.toFixed(1)}" fill="none" stroke="${v.color}" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"></path><text x="${v.textX.toFixed(1)}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" fill="${v.color}" text-anchor="${v.side>0?"start":"end"}" dominant-baseline="middle">${pctText}</text>`;
         }).join("");
         return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}${guides}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
       })()}</div>
@@ -1199,14 +1217,15 @@ function renderBudget(m){
 
 /* ============ 智能洞察 ============ */
 function insightMonthRecords(m){
-  const raw = Array.isArray(DATA?.[m]) ? DATA[m] : [];
+  // 直接复用页面图表/明细正在使用的数据源，避免“图表有数据、洞察为空”。
+  const raw = typeof rangeRecords==="function" ? rangeRecords(m) : (Array.isArray(DATA?.[m])?DATA[m]:[]);
   return raw.map(r=>({
     ...r,
     amt:Number(r.amt ?? r.amount ?? 0),
     cat:r.cat ?? r.category ?? "其他",
     date:String(r.date ?? r.expense_date ?? ""),
     note:r.note ?? ""
-  })).filter(r=>r.amt>0);
+  })).filter(r=>Number.isFinite(r.amt)&&r.amt>0);
 }
 function buildInsights(m){
   const recs=insightMonthRecords(m);
@@ -1215,30 +1234,32 @@ function buildInsights(m){
   const spent={},count={};
   recs.forEach(r=>{spent[r.cat]=(spent[r.cat]||0)+r.amt;count[r.cat]=(count[r.cat]||0)+1;});
   const ranked=Object.entries(spent).sort((a,b)=>b[1]-a[1]);
-  const out=[];
   const [topCat,topAmt]=ranked[0];
-  out.push({type:"up",title:`${topCat}是本月最大支出，共 ${money0(topAmt)}`,desc:`占本月总支出 ${(topAmt/total*100).toFixed(1)}%，共 ${recs.length} 笔`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
-  out.push({type:"idea",title:`平均每笔 ${money(total/recs.length)}`,desc:`本月累计 ${money(total)}`,icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"});
-  const freq=Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
-  if(freq) out.push({type:"trend",title:`${freq[0]}消费频率最高，共 ${freq[1]} 笔`,desc:`占消费笔数 ${(freq[1]/recs.length*100).toFixed(1)}%`,icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"});
+  const top2=ranked.slice(0,2).reduce((s,x)=>s+x[1],0);
+  const budget=Number((BUDGET&&BUDGET[m]) ?? (BUDGET&&BUDGET.default) ?? 8000);
+  const out=[];
+  out.push({type:"up",title:`本月已消费 ${money(total)}，共 ${recs.length} 笔`,desc:`${topCat}最高：${money(topAmt)}，占 ${(topAmt/total*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
+  if(ranked.length>1) out.push({type:"trend",title:`前两类支出占 ${(top2/total*100).toFixed(1)}%`,desc:`${ranked[0][0]} ${money(ranked[0][1])} · ${ranked[1][0]} ${money(ranked[1][1])}`,icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"});
+  if(budget>0){
+    const diff=total-budget;
+    out.push(diff>0
+      ? {type:"up",title:`本月已超预算 ${money(diff)}`,desc:`预算 ${money(budget)}，当前超出 ${(diff/budget*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"}
+      : {type:"tip",title:`预算剩余 ${money(-diff)}`,desc:`已使用 ${(total/budget*100).toFixed(1)}% 的本月预算`,icon:"<path d='M5 12l4 4L19 6'/>"});
+  }
   const big=[...recs].sort((a,b)=>b.amt-a.amt)[0];
-  if(big) out.push({type:"up",title:`最大单笔 ${money(big.amt)}`,desc:`${big.note||big.cat} · 占本月 ${(big.amt/total*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
-  return out.slice(0,5);
+  if(big) out.push({type:"idea",title:`最大单笔 ${money(big.amt)}`,desc:`${big.note||big.cat} · 占本月 ${(big.amt/total*100).toFixed(1)}%`,icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"});
+  return out;
 }
 function renderInsights(m){
   const box=document.getElementById("insightList");
-  if(!box)return;
-  const list=buildInsights(m);
-  box.innerHTML="";
+  if(!box) return;
+  let list=[];
+  try{ list=buildInsights(m); }catch(err){ console.error("insight render failed",err); }
   if(!list.length){
-    box.innerHTML='<div class="insight"><div class="i-text muted" style="color:var(--ink-3)">本月暂无消费记录，新增一笔后立即生成洞察。</div></div>';
+    box.innerHTML='<div class="insight"><div class="i-text" style="color:var(--ink-3)">本月暂无消费记录，新增一笔后立即生成洞察。</div></div>';
     return;
   }
-  list.forEach(it=>{
-    const div=document.createElement("div"); div.className="insight";
-    div.innerHTML=`<div class="i-ico ${it.type}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg></div><div class="i-text"><b>${it.title}</b><div class="muted">${it.desc}</div></div>`;
-    box.appendChild(div);
-  });
+  box.innerHTML=list.map(it=>`<div class="insight"><div class="i-ico ${it.type}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg></div><div class="i-text"><b>${it.title}</b><div class="muted">${it.desc}</div></div></div>`).join("");
 }
 
 /* ============ 智能识别（文字解析 + 图片 OCR） ============ */
