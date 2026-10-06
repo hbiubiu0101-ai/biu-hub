@@ -1,17 +1,12 @@
-# BIU HUB · GitHub Pages + Supabase
+# BIU HUB V1.4.1 · Supabase + GitHub Pages
 
-正式前端：GitHub Pages  
-云端数据：Supabase  
-Cloudflare Workers / D1：不再作为本版本运行依赖。
+基准：用户指定的 `biu-hub-V1.4.1-D1-fixed`。
 
-## 部署
-将本压缩包内的所有文件上传到 GitHub 仓库根目录。
-GitHub → Settings → Pages → Deploy from a branch → main → /(root)
+仅调整运行架构：
+- 保留 V1.4.1 的 UI、功能与工具目录。
+- D1 / Worker 数据接口替换为 Supabase REST。
+- 可直接部署到 GitHub Pages。
+- 修复图表首次渲染早于 ECharts 初始化导致的 `setOption` 报错。
+- 手机与电脑读取/写入同一个 `bookkeeping_state` 云端记录。
 
-## 目录
-- `/index.html`：BIU 工具中心
-- `/tools/bookkeeping/index.html`：消费智记
-- `/tools/travel/index.html`：智能旅游占位页
-- `/database/supabase-init.sql`：Supabase 初始化 SQL
-
-消费智记已连接现有 Supabase，并加入图表初始化保护。
+部署：将压缩包内文件上传到 GitHub 仓库根目录，Pages 选择 `main / (root)`。

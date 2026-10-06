@@ -284,37 +284,6 @@ body::before{
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }
-
-/* V1.5 mobile responsive */
-@media (max-width: 899px){
-  html,body{overflow-x:hidden}
-  .wrap{width:100%;max-width:none;padding-left:14px;padding-right:14px;box-sizing:border-box}
-  .topbar{align-items:flex-start;gap:16px;flex-wrap:wrap}
-  .month-switch{width:auto;max-width:100%}
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .main-grid{grid-template-columns:1fr!important;gap:16px}
-  .analysis-grid{grid-template-columns:1fr!important}
-  .chart-wrap,.chart-box{width:100%!important;min-width:0!important}
-  #trendChart{height:300px!important;width:100%!important}
-  #pieChart{height:360px!important;width:100%!important}
-  .detail-table{table-layout:fixed;width:100%}
-  .detail-table th:nth-child(3),.detail-table td:nth-child(3){display:none}
-  .detail-table th:nth-child(1),.detail-table td:nth-child(1){width:18%}
-  .detail-table th:nth-child(2),.detail-table td:nth-child(2){width:25%}
-  .detail-table th:nth-child(4),.detail-table td:nth-child(4){width:34%}
-  .detail-table th:nth-child(5),.detail-table td:nth-child(5){width:23%}
-  .detail-table th,.detail-table td{padding-left:8px!important;padding-right:8px!important}
-  .cat-badge{white-space:nowrap!important;display:inline-flex!important;align-items:center!important;gap:4px!important}
-  .detail-table .actions{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
-}
-@media (max-width: 520px){
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #trendChart{height:270px!important}
-  #pieChart{height:320px!important}
-  .detail-table{font-size:13px}
-  .detail-table th:nth-child(4),.detail-table td:nth-child(4){font-size:12px}
-}
-
 </style>
 
 <style id="v11-safe-layout-fix">
@@ -628,41 +597,43 @@ function persistBudget(){
 
 /* ============ 数据 ============
    V2 开始不再内置任何演示账单。
-   当前阶段仍使用浏览器本地存储；下一阶段切换 Cloudflare D1。
+   当前版本使用 Supabase 云端存储，手机与电脑共用同一份数据。
    使用新的存储键，避免旧版本 mock 数据继续出现在手机/电脑。
 ================================================ */
 let DATA = {};
-const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
-const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
-const SUPABASE_HEADERS = {
-  "apikey": SUPABASE_KEY,
-  "Authorization": "Bearer " + SUPABASE_KEY,
-  "Content-Type": "application/json"
-};
 let __cloudSaveTimer = null;
 let __cloudReady = false;
 
+/* Supabase：GitHub Pages 与手机/电脑共用同一份账本 */
+const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
+const SUPABASE_ROW_ID = 1;
+
+function supabaseHeaders(extra={}){
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    ...extra
+  };
+}
+
 async function loadCloudState(){
   try{
-    const res = await fetch(SUPABASE_URL + "/rest/v1/bookkeeping_state?id=eq.1&select=data_json,budget_json,updated_at", {
-      headers: SUPABASE_HEADERS,
-      cache: "no-store"
+    const url = `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=data_json,budget_json`;
+    const res = await fetch(url, {
+      cache:"no-store",
+      headers:supabaseHeaders()
     });
-    if(!res.ok) throw new Error("Supabase HTTP " + res.status + ": " + await res.text());
+    if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
     const rows = await res.json();
-    const row = rows && rows[0];
-    DATA = row && row.data_json && typeof row.data_json === "object" ? row.data_json : {};
-    BUDGET = row && row.budget_json && typeof row.budget_json === "object"
-      ? {...DEFAULT_BUDGET, ...row.budget_json}
+    const cloud = rows && rows[0] ? rows[0] : {};
+    DATA = cloud.data_json && typeof cloud.data_json === "object" ? cloud.data_json : {};
+    BUDGET = cloud.budget_json && typeof cloud.budget_json === "object"
+      ? {...DEFAULT_BUDGET, ...cloud.budget_json}
       : {...DEFAULT_BUDGET};
     BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     __cloudReady = true;
     renderAll();
-    requestAnimationFrame(()=>{
-      if(window.echarts){ initCharts(); resizeCharts(); }
-      renderAll();
-      setTimeout(resizeCharts, 80);
-    });
   }catch(err){
     console.error("Supabase load failed:", err);
     __cloudReady = true;
@@ -670,32 +641,26 @@ async function loadCloudState(){
     BUDGET = {...DEFAULT_BUDGET};
     BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     renderAll();
-    requestAnimationFrame(()=>{
-      if(window.echarts){ initCharts(); resizeCharts(); }
-      renderAll();
-      setTimeout(resizeCharts, 80);
-    });
   }
 }
 
 async function saveCloudState(){
   if(!__cloudReady) return;
   try{
-    const payload = {
-      id: 1,
-      data_json: DATA,
-      budget_json: BUDGET,
-      updated_at: new Date().toISOString()
-    };
-    const res = await fetch(SUPABASE_URL + "/rest/v1/bookkeeping_state?on_conflict=id", {
-      method: "POST",
-      headers: {
-        ...SUPABASE_HEADERS,
-        "Prefer": "resolution=merge-duplicates,return=minimal"
-      },
-      body: JSON.stringify(payload)
+    const url = `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}`;
+    const res = await fetch(url, {
+      method:"PATCH",
+      headers:supabaseHeaders({
+        "Content-Type":"application/json",
+        "Prefer":"return=minimal"
+      }),
+      body:JSON.stringify({
+        data_json:DATA,
+        budget_json:BUDGET,
+        updated_at:new Date().toISOString()
+      })
     });
-    if(!res.ok) throw new Error("Supabase HTTP " + res.status + ": " + await res.text());
+    if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
   }catch(err){
     console.error("Supabase save failed:", err);
   }
@@ -703,9 +668,11 @@ async function saveCloudState(){
 
 function queueCloudSave(){
   clearTimeout(__cloudSaveTimer);
-  __cloudSaveTimer = setTimeout(saveCloudState, 120);
+  __cloudSaveTimer = setTimeout(saveCloudState, 180);
 }
 function persistData(){ queueCloudSave(); }
+
+/* ============ 状态 ============ */
 const __now = new Date();
 const __currentMonth = `${__now.getFullYear()}-${String(__now.getMonth()+1).padStart(2,"0")}`;
 const state = {month:__currentMonth, catFilter:null, chartTab:"trend", range:"6m", rangeStart:"", rangeEnd:"", latestMonth:__currentMonth};
@@ -769,33 +736,25 @@ const chartBase = {
   textStyle:{fontFamily:"Noto Sans SC,sans-serif",fontSize:12,color:"#5C645E"},
   color:["#1B6B53","#E4E0D4"]
 };
-function resizeCharts(){
-  try{ if(trendChart && !trendChart.isDisposed()) trendChart.resize(); }catch(e){}
-  try{ if(catChart && !catChart.isDisposed()) catChart.resize(); }catch(e){}
-}
-window.addEventListener("resize", ()=>requestAnimationFrame(resizeCharts));
-window.addEventListener("orientationchange", ()=>setTimeout(resizeCharts,180));
-
-function ensureCharts(){
-  if(typeof echarts === "undefined") return false;
-  const trendEl = $("trendChart");
-  const catEl = $("catChart");
+function initCharts(){
+  if(!window.echarts) return false;
+  const trendEl = $("trendChart"), catEl = $("catChart");
   if(!trendEl || !catEl) return false;
   try{
-    if(!trendChart || trendChart.isDisposed()) {
-      trendChart = echarts.getInstanceByDom(trendEl) || echarts.init(trendEl);
+    trendChart = echarts.getInstanceByDom(trendEl) || echarts.init(trendEl);
+    catChart = echarts.getInstanceByDom(catEl) || echarts.init(catEl);
+    if(!window.__biuChartResizeBound){
+      window.__biuChartResizeBound = true;
+      window.addEventListener("resize", ()=>{
+        try{ if(trendChart) trendChart.resize(); }catch(e){}
+        try{ if(catChart) catChart.resize(); }catch(e){}
+      });
     }
-    if(!catChart || catChart.isDisposed()) {
-      catChart = echarts.getInstanceByDom(catEl) || echarts.init(catEl);
-    }
-    return !!(trendChart && catChart);
+    return true;
   }catch(e){
-    console.error("图表初始化失败：", e);
+    console.error("Chart init failed:", e);
     return false;
   }
-}
-function initCharts(){
-  ensureCharts();
 }
 function last6Months(m){
   const arr=[]; let cur=m;
@@ -838,11 +797,10 @@ function rangeRecords(m){
   return monthRecords(m);
 }
 function renderTrend(m){
-  if(!ensureCharts()) return;
   const ms = activeRangeMonths(m);
   const vals = ms.map(x=>monthTotal(x));
   const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
-  trendChart.setOption({
+  if(trendChart) trendChart.setOption({
     title:{text:state.range==="1y"?"一年支出":(state.range==="custom"?"自选时间支出":"近 6 个月支出"), left:0, top:0, textStyle:{fontSize:13,fontWeight:700,color:"#262B27"}},
     tooltip:{trigger:"axis", formatter:p=>{const i=p[0].dataIndex; return `${ms[i].slice(0,4)}年${Number(ms[i].slice(5))}月<br><b style="color:#1B6B53">${money(vals[i])}</b>`;}},
     xAxis:{type:"category", data:ms.map(x=>Number(x.slice(5))+"月"), axisLine:{lineStyle:{color:"#D5CFBF"}}, axisTick:{show:false}},
@@ -856,10 +814,9 @@ function renderTrend(m){
   trendChart.on("click", p=>{ if(p.componentType!=="series" || p.seriesType!=="bar") return; const target=ms[p.dataIndex]; if(target){state.month=target; state.range="6m"; syncRangeUI(); renderAll();} });
 }
 function renderCatBar(m){
-  if(!ensureCharts()) return;
   const by = catSummary(m);
   const sorted = [...by].sort((a,b)=>b.amt-a.amt);
-  catChart.setOption({
+  if(catChart) catChart.setOption({
     title:{text:"分类支出排序", left:0, top:0, textStyle:{fontSize:13,fontWeight:700,color:"#262B27"}},
     tooltip:{trigger:"axis", axisPointer:{type:"shadow"}, formatter:p=>{const d=p[0]; return `${d.name}<br><b style="color:${d.color}">${money(d.value)}</b>`;}},
     grid:{left:10,right:30,top:28,bottom:4,containLabel:true},
@@ -869,12 +826,11 @@ function renderCatBar(m){
   }, true);
 }
 function renderDonut(m){
-  if(!ensureCharts()) return;
   const by = catSummary(m).sort((a,b)=>b.amt-a.amt);
   const isMobile = window.innerWidth < 640;
   const hasData = by.length > 0;
 
-  catChart.setOption({
+  if(catChart) catChart.setOption({
     title:{text:"本月分类占比", left:0, top:2, textStyle:{fontSize:13,fontWeight:700,color:"#262B27"}},
     tooltip: hasData ? {
       trigger:"item",
@@ -1361,53 +1317,176 @@ syncRangeUI();
 /* ============ 启动 ============ */
 renderCatPicker();
 selectCat("餐饮");
-function showRuntimeError(msg){
-  let el = document.getElementById("__runtimeError");
-  if(!el){
-    el = document.createElement("div");
-    el.id = "__runtimeError";
-    el.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#fff3f0;border:1px solid #e7a99b;color:#9b2c1f;padding:10px 12px;border-radius:8px;font:13px/1.5 sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.12)";
-    document.body.appendChild(el);
-  }
-  el.textContent = "页面运行异常：" + msg;
-}
-window.addEventListener("error", e=>showRuntimeError(e.message || "JavaScript error"));
-window.addEventListener("unhandledrejection", e=>showRuntimeError((e.reason && e.reason.message) || String(e.reason || "Promise error")));
 
-let __booted = false;
-function bootApp(){
-  if(__booted) return;
-  __booted = true;
-  // 表单先可用：日期、分类等必须先初始化
-  try{
-    const dateInput = document.getElementById("dateInput");
-    if(dateInput && !dateInput.value){
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      dateInput.value = `${y}-${m}-${day}`;
-    }
-  }catch(e){ console.error(e); }
-
-  try{ renderCatPicker(); }catch(e){ console.error(e); }
-  try{ selectCat("餐饮"); }catch(e){ console.error(e); }
-
-  // 图表实例必须先建立，再 renderAll
-  if(window.echarts){
-    try{ initCharts(); resizeCharts(); }catch(e){ console.error(e); }
-  }
-  try{ renderAll(); }catch(e){ console.error(e); }
-
-  // 最后再拉云端数据；失败也不影响表单本身
+if(window.echarts){
+  initCharts();
+  renderAll();
   loadCloudState();
-}
-if(document.readyState === "loading"){
-  document.addEventListener("DOMContentLoaded", bootApp, {once:true});
 }else{
-  bootApp();
+  renderAll();
+  loadCloudState();
+  injectLib("https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js", ok=>{
+    if(ok && window.echarts){
+      initCharts();
+      renderAll();
+    }else{
+      const ph = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-3);font-size:12px;text-align:center;padding:20px">图表组件加载失败（网络原因），<br>其余功能不受影响，请稍后刷新页面重试</div>';
+      $("trendChart").innerHTML = ph;
+      $("catChart").innerHTML = ph;
+    }
+  });
 }
-)();
+</script>
+
+<script id="ledger-edit-js">
+let __editingIndex = null;
+
+function __setCategoryForEdit(cat){
+  try {
+    if(typeof selectedCat!=="undefined") selectedCat=cat;
+    if(typeof selectedCategory!=="undefined") selectedCategory=cat;
+  } catch(e){}
+  document.querySelectorAll('[data-cat]').forEach(b=>{
+    const hit=(b.dataset.cat===cat);
+    b.classList.toggle('active',hit);
+    b.classList.toggle('selected',hit);
+  });
+}
+
+function editRecord(index){
+  const r=DATA[index];
+  if(!r) return;
+  __editingIndex=index;
+  const amountEl=document.getElementById('fAmount');
+  const dateEl=document.getElementById('fAmount');
+  const payEl=document.getElementById('fPay');
+  const noteEl=document.getElementById('fAmount');
+  if(amountEl) amountEl.value=r.amount ?? "";
+  if(dateEl) dateEl.value=r.date ?? "";
+  if(payEl) payEl.value=r.pay ?? r.payment ?? r.method ?? "微信";
+  if(noteEl) noteEl.value=r.note ?? "";
+  __setCategoryForEdit(r.category ?? r.cat ?? "其他");
+  document.getElementById('editingNote')?.classList.add('show');
+  const sb=document.getElementById('saveBtn');
+  if(sb) sb.textContent="保存修改";
+  amountEl?.scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+function cancelRecordEdit(){
+  __editingIndex=null;
+  document.getElementById('editingNote')?.classList.remove('show');
+  const sb=document.getElementById('saveBtn');
+  if(sb) sb.textContent="保存这笔消费";
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("cancelEditBtn")?.addEventListener("click",cancelRecordEdit);
+});
+</script>
+
+
+<script id="ledger-edit-save-intercept">
+document.addEventListener("DOMContentLoaded",()=>{
+ const btn=document.getElementById('saveBtn');
+ if(!btn) return;
+ btn.addEventListener("click",(e)=>{
+   if(__editingIndex===null) return;
+   e.preventDefault(); e.stopImmediatePropagation();
+   const old=DATA[__editingIndex];
+   if(!old){cancelRecordEdit();return;}
+   const amount=parseFloat(document.getElementById('fAmount')?.value||"0");
+   if(!(amount>0)){ if(typeof toast==="function") toast("请输入正确的消费金额"); return; }
+   const date=document.getElementById('fAmount')?.value||old.date;
+   const pay=document.getElementById('fPay')?.value||old.pay||old.payment||old.method||"微信";
+   const note=document.getElementById('fAmount')?.value||"";
+   let cat=old.category||old.cat||"其他";
+   try {
+     if(typeof selectedCat!=="undefined") cat=selectedCat;
+     else if(typeof selectedCategory!=="undefined") cat=selectedCategory;
+   } catch(err){}
+   DATA[__editingIndex]={...old,date,amount,note};
+   if("category" in old) DATA[__editingIndex].category=cat; else DATA[__editingIndex].cat=cat;
+   if("pay" in old) DATA[__editingIndex].pay=pay;
+   else if("payment" in old) DATA[__editingIndex].payment=pay;
+   else if("method" in old) DATA[__editingIndex].method=pay;
+   else DATA[__editingIndex].pay=pay;
+   persistData();
+   cancelRecordEdit();
+   renderAll();
+   if(typeof toast==="function") toast("已更新这笔消费");
+ },true);
+});
+</script>
+
+
+<script id="ledger-edit-fallback">
+const __origRenderLedger = renderLedger;
+renderLedger = function(...args){
+  const ret=__origRenderLedger.apply(this,args);
+  const rows=[...document.querySelectorAll('#ledgerBody tr')];
+  rows.forEach((tr,i)=>{
+    const cell=tr.children[4];
+    if(!cell || cell.querySelector('.ledger-edit-btn')) return;
+    const b=document.createElement('button');
+    b.type='button'; b.className='ledger-edit-btn'; b.textContent='编辑';
+    b.addEventListener('click',()=>editRecord(i));
+    cell.insertBefore(b,cell.firstChild);
+    cell.classList.add('ledger-edit-cell');
+  });
+  return ret;
+};
+</script>
+
+
+<script id="ledger-align-insight-js">
+(function(){
+  let rafId=0;
+
+  function findPanelByText(text){
+    const heads=[...document.querySelectorAll('.panel-head,h3')];
+    const hit=heads.find(el=>(el.textContent||'').includes(text));
+    if(!hit) return null;
+    return hit.closest('.panel') || hit.closest('section') || hit.parentElement;
+  }
+
+  function alignLedgerToInsight(){
+    cancelAnimationFrame(rafId);
+    rafId=requestAnimationFrame(()=>{
+      const ledger=document.querySelector('.ledger-fixed-card');
+      if(!ledger) return;
+
+      if(window.innerWidth<=980){
+        ledger.classList.remove('is-aligned');
+        ledger.style.removeProperty('--ledger-aligned-height');
+        return;
+      }
+
+      const insight=findPanelByText('智能洞察');
+      if(!insight) return;
+
+      const ledgerTop=ledger.getBoundingClientRect().top + window.scrollY;
+      const insightBottom=insight.getBoundingClientRect().bottom + window.scrollY;
+      const target=Math.max(300, Math.round(insightBottom-ledgerTop));
+
+      ledger.style.setProperty('--ledger-aligned-height', target+'px');
+      ledger.classList.add('is-aligned');
+    });
+  }
+
+  window.addEventListener('load',()=>{
+    alignLedgerToInsight();
+    setTimeout(alignLedgerToInsight,120);
+    setTimeout(alignLedgerToInsight,500);
+  });
+  window.addEventListener('resize',alignLedgerToInsight);
+
+  const obs=new MutationObserver(alignLedgerToInsight);
+  document.addEventListener('DOMContentLoaded',()=>{
+    const side=document.querySelector('.side-col');
+    if(side) obs.observe(side,{childList:true,subtree:true,characterData:true});
+    alignLedgerToInsight();
+  });
+})();
 </script>
 
 
