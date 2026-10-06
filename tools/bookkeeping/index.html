@@ -464,6 +464,34 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 }
 </style>
 
+
+<style>
+/* V2.5 按标注调整 */
+#trendChart svg text{font-size:13px!important;font-weight:500!important}
+#trendChart svg text.bar-value,
+#trendChart svg .bar-value{font-size:13px!important;font-weight:700!important}
+.donut-svg-wrap{width:156px;height:156px}
+.donut-svg-wrap svg{width:100%;height:100%;overflow:visible}
+.donut-pct{font-size:8px;font-weight:700;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.18);stroke-width:.8px}
+.donut-total{font-size:15px;font-weight:800;fill:#252B28}
+.donut-sub{font-size:9px;fill:#9AA19A}
+.donut-legend-horizontal{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  width:100%!important;
+  gap:9px 12px!important;
+  justify-content:stretch!important;
+}
+.donut-legend-item{
+  width:100%;justify-content:flex-start!important;
+  font-size:11px!important;gap:5px!important;min-width:0;
+}
+@media(max-width:760px){
+  #trendChart svg text{font-size:13px!important}
+  .donut-legend-horizontal{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -1041,13 +1069,24 @@ function renderDonut(m){
   by.forEach(x=>{const a=deg,b=deg+x.amt/total*360;stops.push(`${x.color} ${a}deg ${b}deg`);deg=b;});
   const legend=by.map(x=>{
     const pct=(x.amt/total*100).toFixed(1);
-    return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-legend-item"><i style="background:${x.color}"></i><span>${escHtml(x.key)}</span><b>${pct}%</b><span>${money0(x.amt)}</span></button>`;
+    return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-legend-item"><i style="background:${x.color}"></i><span>${escHtml(x.key)}</span><span>${money0(x.amt)}</span></button>`;
   }).join("");
   box.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:12px">本月分类占比</div>
     <div class="donut-layout">
-      <div class="donut-ring" style="background:conic-gradient(${stops.join(",")})">
-        <div><b>${money0(total)}</b><span>总支出</span></div>
-      </div>
+      <div class="donut-svg-wrap">${(()=>{
+        let acc=0;
+        const cx=70,cy=70,r=50,sw=30,circ=2*Math.PI*r;
+        const arcs=by.map(x=>{
+          const pct=x.amt/total, dash=pct*circ, gap=circ-dash;
+          const start=acc; acc+=pct;
+          const mid=start+pct/2;
+          const angle=mid*2*Math.PI-Math.PI/2;
+          const tx=cx+Math.cos(angle)*r, ty=cy+Math.sin(angle)*r;
+          const label=pct>=0.035 ? `${(pct*100).toFixed(1)}%` : "";
+          return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>${label?`<text x="${tx}" y="${ty}" class="donut-pct" text-anchor="middle" dominant-baseline="middle">${label}</text>`:""}`;
+        }).join("");
+        return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
+      })()}</div>
       <div class="donut-legend-horizontal">${legend}</div>
     </div>`;
   box.querySelectorAll("button[data-cat]").forEach(b=>b.onclick=()=>{
