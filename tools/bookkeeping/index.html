@@ -613,6 +613,21 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 #insightList .insight-empty{padding:8px 2px!important;color:#9AA19A!important;font-size:12px!important}
 </style>
 
+
+<style id="biu-right-column-equal-height-fix">
+/* Desktop: right column follows full left-column height; extra space belongs to insight */
+@media (min-width:1081px){
+  .shell{align-items:stretch!important;}
+  .side-col{height:100%!important;min-height:0!important;}
+  .side-col>section:last-child{flex:1 1 auto!important;display:flex!important;flex-direction:column!important;min-height:220px!important;}
+  .side-col>section:last-child>#insightList{flex:1 1 auto!important;align-content:start!important;min-height:0!important;}
+}
+@media (max-width:1080px){
+  .shell{align-items:start!important;}
+  .side-col{height:auto!important;}
+  .side-col>section:last-child{min-height:0!important;}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1818,7 +1833,7 @@ document.addEventListener("DOMContentLoaded",function(){
   }
   function recordsForInsight(month){
     try{
-      if(window.DATA && Array.isArray(DATA[month])){
+      if(typeof DATA !== "undefined" && DATA && Array.isArray(DATA[month])){
         return DATA[month].map(r=>({
           amt:Number(r.amt ?? r.amount ?? 0),
           cat:String(r.cat ?? r.category ?? "其他"),
