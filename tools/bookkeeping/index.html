@@ -646,6 +646,9 @@ let __cloudSaveTimer = null;
 let __cloudReady = false;
 let __cloudSaving = false;
 let __cloudSaveAgain = false;
+let __localRevision = 0;       // 本机数据每次修改都会递增
+let __lastSavedRevision = 0;   // 已成功写入云端的本机版本
+let __cloudRefreshBusy = false;
 
 const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
@@ -658,7 +661,14 @@ function supabaseHeaders(extra={}){
     ...extra
   };
 }
-async function loadCloudState(){
+
+/*
+  云端读取保护：
+  发起请求时记住本机版本。若请求返回前用户已经新增/编辑/删除，
+  则绝不使用旧云端结果覆盖本机的新数据。
+*/
+async function loadCloudState({silent=false}={}){
+  const revisionAtStart = __localRevision;
   try{
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=data_json,budget_json,updated_at`,
@@ -666,6 +676,10 @@ async function loadCloudState(){
     );
     if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
     const rows = await res.json();
+
+    // 本机在等待云端期间已经发生修改：丢弃这次旧响应
+    if(revisionAtStart !== __localRevision || __cloudSaving || __cloudSaveTimer) return false;
+
     const cloud = rows?.[0] || {};
     DATA = cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
     BUDGET = cloud.budget_json && typeof cloud.budget_json==="object"
@@ -673,69 +687,88 @@ async function loadCloudState(){
       : {...DEFAULT_BUDGET};
     BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     __cloudReady = true;
+    __lastSavedRevision = __localRevision;
     renderAll();
+    return true;
   }catch(err){
     console.error("Supabase load failed:", err);
     __cloudReady = true;
-    DATA = {};
-    BUDGET = {...DEFAULT_BUDGET};
-    BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-    renderAll();
-    showRuntimeMessage("云端数据读取失败，请检查网络后刷新；页面仍可打开。");
+    // 首次读取失败时不再强行 DATA={}，避免覆盖用户已经输入的内容
+    if(!silent) showRuntimeMessage("云端数据读取失败，请检查网络后刷新；当前页面数据不会被清空。");
+    return false;
   }
 }
+
+/*
+  保存时复制一份快照。只有 PATCH 成功才把该版本标记为已保存。
+  保存期间如果又有新修改，完成后继续保存下一版。
+*/
 async function saveCloudState(){
-  if(!__cloudReady) return;
-  if(__cloudSaving){ __cloudSaveAgain = true; return; }
+  if(!__cloudReady) return false;
+  if(__cloudSaving){ __cloudSaveAgain = true; return false; }
+
   __cloudSaving = true;
+  const revisionToSave = __localRevision;
+  const payload = {
+    data_json: JSON.parse(JSON.stringify(DATA)),
+    budget_json: JSON.parse(JSON.stringify(BUDGET)),
+    updated_at: new Date().toISOString()
+  };
+
   try{
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}`,
       {
         method:"PATCH",
         headers:supabaseHeaders({"Content-Type":"application/json","Prefer":"return=minimal"}),
-        body:JSON.stringify({
-          data_json:DATA,
-          budget_json:BUDGET,
-          updated_at:new Date().toISOString()
-        })
+        body:JSON.stringify(payload)
       }
     );
     if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
+    __lastSavedRevision = Math.max(__lastSavedRevision, revisionToSave);
     window.__lastCloudSaveAt = Date.now();
+    return true;
   }catch(err){
     console.error("Supabase save failed:", err);
     showRuntimeMessage("这次云端保存失败，请检查网络后再试。");
+    return false;
   }finally{
     __cloudSaving = false;
-    if(__cloudSaveAgain){
+    if(__cloudSaveAgain || __localRevision > revisionToSave){
       __cloudSaveAgain = false;
-      saveCloudState();
+      setTimeout(saveCloudState, 80);
     }
   }
 }
+
 function queueCloudSave(){
+  __localRevision++;
   clearTimeout(__cloudSaveTimer);
-  __cloudSaveTimer = setTimeout(()=>{ saveCloudState(); }, 120);
+  __cloudSaveTimer = setTimeout(async ()=>{
+    __cloudSaveTimer = null;
+    await saveCloudState();
+  }, 180);
 }
 function persistData(){ queueCloudSave(); }
 
-/* 跨设备同步：电脑/手机重新回到页面时立即从 Supabase 拉取最新数据；
-   页面保持打开时也会轻量轮询，避免另一台设备记账后仍显示旧数据。 */
-let __cloudRefreshBusy = false;
+/*
+  跨设备同步：只有本机没有“待保存修改”时才允许拉取云端。
+  这样手机刚记的一笔不会再被电脑/云端旧数据反向覆盖。
+*/
 async function refreshCloudState(){
-  if(__cloudRefreshBusy || __cloudSaving) return;
+  if(__cloudRefreshBusy || __cloudSaving || __cloudSaveTimer || __localRevision > __lastSavedRevision) return;
   __cloudRefreshBusy = true;
-  try{ await loadCloudState(); }
+  try{ await loadCloudState({silent:true}); }
   finally{ __cloudRefreshBusy = false; }
 }
 document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState === "visible") refreshCloudState();
+  if(document.visibilityState === "visible") setTimeout(refreshCloudState, 350);
 });
-window.addEventListener("focus", refreshCloudState);
+window.addEventListener("focus", ()=>setTimeout(refreshCloudState, 350));
+// 电脑长期开着时仍能同步手机数据，但绝不覆盖本机待保存内容
 setInterval(()=>{
   if(document.visibilityState === "visible") refreshCloudState();
-}, 8000);
+}, 12000);
 
 function showRuntimeMessage(msg){
   let n=document.getElementById("runtimeNotice");
