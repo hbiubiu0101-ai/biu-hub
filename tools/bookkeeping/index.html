@@ -628,6 +628,33 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
   .side-col>section:last-child{min-height:0!important;}
 }
 </style>
+
+<style id="ledger-day-filter-style">
+.ledger-head{gap:12px}
+.ledger-head-tools{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
+.ledger-day-filter{
+  display:flex;align-items:center;gap:7px;height:32px;padding:0 9px;
+  border:1px solid var(--line-strong);border-radius:7px;background:#fff;
+  color:var(--ink-2);font-size:12px;white-space:nowrap
+}
+.ledger-day-filter input{
+  border:0;outline:0;background:transparent;color:var(--ink);
+  font:inherit;width:116px;padding:0;cursor:pointer
+}
+.ledger-date-clear{
+  height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:7px;
+  background:#fff;color:var(--jade);font:inherit;font-size:12px;cursor:pointer
+}
+.ledger-date-clear:hover{border-color:var(--jade)}
+@media (max-width:760px){
+  .ledger-head{align-items:flex-start!important}
+  .ledger-head-tools{flex-wrap:wrap;gap:7px;justify-content:flex-end}
+  .ledger-day-filter{height:30px}
+  .ledger-day-filter input{width:108px}
+  .ledger-head-tools .hint{width:100%;text-align:right}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -707,9 +734,16 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
       <!-- 明细 -->
       <section class="panel ledger-fixed-card">
-        <div class="panel-head">
+        <div class="panel-head ledger-head">
           <h3><span class="dot"></span>消费明细</h3>
-          <span class="hint">共 <b id="ledgerTotal" class="num">0</b> 笔 · 点击可切换分类筛选</span>
+          <div class="ledger-head-tools">
+            <label class="ledger-day-filter">
+              <span>按日查看</span>
+              <input id="ledgerDateFilter" type="date" aria-label="按日期查看消费记录">
+            </label>
+            <button type="button" id="ledgerDateClear" class="ledger-date-clear" style="display:none">全部</button>
+            <span class="hint">共 <b id="ledgerTotal" class="num">0</b> 笔 · 点击可切换分类筛选</span>
+          </div>
         </div>
         <div class="panel-body" style="padding:0">
           <div class="ledger-scroll"><table class="ledger">
@@ -1072,7 +1106,8 @@ function showRuntimeMessage(msg){
 /* ============ 状态 ============ */
 const __now = new Date();
 const __currentMonth = `${__now.getFullYear()}-${String(__now.getMonth()+1).padStart(2,"0")}`;
-const state = {month:__currentMonth, catFilter:null, chartTab:"trend", range:"6m", rangeStart:"", rangeEnd:"", latestMonth:__currentMonth};
+const state = {
+  ledgerDateFilter:"",month:__currentMonth, catFilter:null, chartTab:"trend", range:"6m", rangeStart:"", rangeEnd:"", latestMonth:__currentMonth};
 
 const monthKeys = () => Object.keys(DATA).sort();
 const MONTH_LABEL = m => `${m.slice(0,4)}年${Number(m.slice(5))}月`;
@@ -1240,7 +1275,10 @@ function renderCharts(m){
 /* ============ 明细 ============ */
 function renderLedger(m){
   const recs = rangeRecords(m);
-  const filtered = state.catFilter ? recs.filter(r=>r.cat===state.catFilter) : recs;
+  let filtered = state.catFilter ? recs.filter(r=>r.cat===state.catFilter) : recs;
+  if(state.ledgerDateFilter){
+    filtered = filtered.filter(r=>String(r.date||r.expense_date||"")===state.ledgerDateFilter);
+  }
   const list = [...filtered].sort((a,b)=>{
     const ta = String(a.date||"") + " " + String(a.time||"00:00");
     const tb = String(b.date||"") + " " + String(b.time||"00:00");
@@ -1298,64 +1336,91 @@ function renderInsights(m){
   const box=document.getElementById("insightList");
   if(!box) return;
 
-  // 洞察直接读取当前月 DATA，不再经过图表 range/filter 状态。
-  const recs=(Array.isArray(DATA?.[m])?DATA[m]:[])
-    .map(r=>({
-      amt:Number(r.amt ?? r.amount ?? 0),
-      cat:String(r.cat ?? r.category ?? "其他"),
-      note:String(r.note ?? ""),
-      date:String(r.date ?? r.expense_date ?? ""),
-      time:String(r.time ?? r.expense_time ?? "")
-    }))
+  const normalize=(r)=>({
+    amt:Number(r.amt ?? r.amount ?? 0),
+    cat:String(r.cat ?? r.category ?? "其他"),
+    note:String(r.note ?? ""),
+    date:String(r.date ?? r.expense_date ?? ""),
+    time:String(r.time ?? r.expense_time ?? "")
+  });
+  const recs=(Array.isArray(DATA?.[m])?DATA[m]:[]).map(normalize)
     .filter(r=>Number.isFinite(r.amt)&&r.amt>0);
 
   if(!recs.length){
-    box.innerHTML='<div class="insight-empty">本月暂无消费记录，新增一笔后立即生成洞察。</div>';
+    box.innerHTML='<div class="insight-empty">本月暂无消费记录，新增一笔后会自动生成洞察。</div>';
     return;
   }
 
-  const total=recs.reduce((s,r)=>s+r.amt,0);
-  const groups={};
-  recs.forEach(r=>groups[r.cat]=(groups[r.cat]||0)+r.amt);
-  const ranked=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
-  const top=ranked[0];
-  const second=ranked[1]||null;
+  const total=recs.reduce((a,r)=>a+r.amt,0);
+  const amountByCat={}, countByCat={};
+  recs.forEach(r=>{
+    amountByCat[r.cat]=(amountByCat[r.cat]||0)+r.amt;
+    countByCat[r.cat]=(countByCat[r.cat]||0)+1;
+  });
+  const amountRank=Object.entries(amountByCat).sort((a,b)=>b[1]-a[1]);
+  const countRank=Object.entries(countByCat).sort((a,b)=>b[1]-a[1] || (amountByCat[b[0]]||0)-(amountByCat[a[0]]||0));
+  const top=amountRank[0];
+  const frequent=countRank[0];
   const maxRec=[...recs].sort((a,b)=>b.amt-a.amt)[0];
-  const budget=Number(BUDGET_TOTAL||0);
-  const avg=total/recs.length;
 
-  const cards=[
-    {
-      cls:"jade",
-      title:`本月已消费 ${money(total)}`,
-      desc:`共 ${recs.length} 笔，平均每笔 ${money(avg)}`
-    },
-    {
-      cls:"amber",
-      title:`${top[0]}是最大支出`,
-      desc:`${money(top[1])} · 占本月 ${(top[1]/total*100).toFixed(1)}%${second?`；其次是${second[0]} ${money(second[1])}`:""}`
-    },
-    {
-      cls:"blue",
-      title:`最大单笔 ${money(maxRec.amt)}`,
-      desc:`${maxRec.note||maxRec.cat}${maxRec.date?` · ${maxRec.date.slice(5).replace("-","/")}`:""}`
-    }
-  ];
+  const pm=prevMonth(m);
+  const prev=(Array.isArray(DATA?.[pm])?DATA[pm]:[]).map(normalize)
+    .filter(r=>Number.isFinite(r.amt)&&r.amt>0);
+  const prevTotal=prev.reduce((a,r)=>a+r.amt,0);
 
-  if(budget>0){
-    const left=budget-total;
-    cards.push(left>=0?{
-      cls:"jade",
-      title:`预算剩余 ${money(left)}`,
-      desc:`本月预算 ${money(budget)}，已使用 ${(total/budget*100).toFixed(1)}%`
-    }:{
-      cls:"red",
-      title:`已超预算 ${money(Math.abs(left))}`,
-      desc:`本月预算 ${money(budget)}，当前支出为预算的 ${(total/budget*100).toFixed(1)}%`
+  const cards=[];
+  cards.push({
+    cls:"red",
+    title:`${top[0]}是本月最大支出，共 ${money(top[1])}`,
+    desc:`占本月总支出 ${(top[1]/total*100).toFixed(1)}%`
+  });
+
+  if(prevTotal>0){
+    const change=(total-prevTotal)/prevTotal*100;
+    cards.push({
+      cls:change>=0?"amber":"jade",
+      title:`本月支出较上月${change>=0?"增加":"减少"} ${Math.abs(change).toFixed(1)}%`,
+      desc:`上月 ${money(prevTotal)} → 本月 ${money(total)}`
     });
   }
 
-  box.innerHTML=cards.map(c=>`
+  const topBudget=Number(BUDGET?.[top[0]]||0);
+  if(topBudget>0){
+    const progress=top[1]/topBudget*100;
+    const left=topBudget-top[1];
+    cards.push({
+      cls:progress>=100?"red":progress>=80?"amber":"jade",
+      title:`${top[0]}预算进度已达 ${progress.toFixed(0)}%`,
+      desc:left>=0?`距离分类预算还剩 ${money(left)}`:`已超出分类预算 ${money(Math.abs(left))}`
+    });
+  }else if(Number(BUDGET_TOTAL||0)>0){
+    const p=total/Number(BUDGET_TOTAL)*100;
+    const left=Number(BUDGET_TOTAL)-total;
+    cards.push({
+      cls:p>=100?"red":p>=80?"amber":"jade",
+      title:`本月总预算进度 ${p.toFixed(0)}%`,
+      desc:left>=0?`距离月预算还剩 ${money(left)}`:`已超月预算 ${money(Math.abs(left))}`
+    });
+  }
+
+  if(frequent){
+    cards.push({
+      cls:"blue",
+      title:`${frequent[0]}消费了 ${frequent[1]} 笔，频率最高`,
+      desc:frequent[1]>1?`平均每笔 ${money((amountByCat[frequent[0]]||0)/frequent[1])}`:`本月该分类目前有 1 笔消费`
+    });
+  }
+
+  const avg=total/recs.length;
+  if(maxRec && maxRec.amt>=avg*1.5){
+    cards.push({
+      cls:"red",
+      title:`单笔大额：${maxRec.note&&maxRec.note!=="—"?maxRec.note:maxRec.cat} ${money(maxRec.amt)}`,
+      desc:`约为本月单笔均值（${money(avg)}）的 ${(maxRec.amt/avg).toFixed(1)} 倍`
+    });
+  }
+
+  box.innerHTML=cards.slice(0,5).map(c=>`
     <div class="insight-result-card ${c.cls}">
       <span class="insight-result-dot"></span>
       <div><b>${escHtml(c.title)}</b><p>${escHtml(c.desc)}</p></div>
@@ -1671,9 +1736,34 @@ function renderMonth(m){
 }
 function renderAll(){ renderMonth(state.month); requestAnimationFrame(()=>renderInsights(state.month)); }
 
+
+function syncLedgerDateFilter(){
+  const input=$("ledgerDateFilter");
+  const clear=$("ledgerDateClear");
+  if(!input||!clear) return;
+  input.value=state.ledgerDateFilter||"";
+  clear.style.display=state.ledgerDateFilter?"inline-flex":"none";
+}
+$("ledgerDateFilter")?.addEventListener("change",e=>{
+  const d=e.target.value||"";
+  if(d){
+    const month=d.slice(0,7);
+    if(month!==state.month) state.month=month;
+  }
+  state.ledgerDateFilter=d;
+  syncLedgerDateFilter();
+  renderMonth(state.month);
+});
+$("ledgerDateClear")?.addEventListener("click",()=>{
+  state.ledgerDateFilter="";
+  syncLedgerDateFilter();
+  renderLedger(state.month);
+});
+syncLedgerDateFilter();
+
 /* ============ 事件绑定 ============ */
-$("prevMonth").onclick = ()=>{ state.month = prevMonth(state.month); renderAll(); };
-$("nextMonth").onclick = ()=>{ state.month = nextMonth(state.month); renderAll(); };
+$("prevMonth").onclick = ()=>{ state.month = prevMonth(state.month); state.ledgerDateFilter=""; syncLedgerDateFilter(); renderAll(); };
+$("nextMonth").onclick = ()=>{ state.month = nextMonth(state.month); state.ledgerDateFilter=""; syncLedgerDateFilter(); renderAll(); };
 $("saveBtn").onclick = saveRecord;
 $("cancelEditBtn")?.addEventListener("click", cancelRecordEdit);
 $("fAmount").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
