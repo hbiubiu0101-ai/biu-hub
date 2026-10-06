@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>消费智记 · 智能消费统计工作台</title>
+<meta name="biu-version" content="1.4.4-sync-verified">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B6B53'/%3E%3Cpath d='M8 16.5h4l2.5-5 3.5 9 2.8-6h4' stroke='%23F7F5EF' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 /* ============ 设计令牌 ============ */
@@ -710,33 +711,61 @@ async function saveCloudState(){
   __cloudSaving = true;
   const revisionToSave = __localRevision;
   const payload = {
+    id: SUPABASE_ROW_ID,
     data_json: JSON.parse(JSON.stringify(DATA)),
     budget_json: JSON.parse(JSON.stringify(BUDGET)),
     updated_at: new Date().toISOString()
   };
 
   try{
+    /*
+      不再使用“PATCH + return=minimal”。
+      Supabase/PostgREST 在没有真正更新到任何行时也可能返回 204，旧版会误判成保存成功，
+      随后自动读取云端的旧 {}，于是刚新增的记录看起来被“自动删除”。
+
+      这里改成 id=1 的 UPSERT，并要求 return=representation。
+      只有服务器明确返回 id=1 的实际记录，才标记为保存成功。
+    */
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}`,
+      `${SUPABASE_URL}/rest/v1/bookkeeping_state?on_conflict=id`,
       {
-        method:"PATCH",
-        headers:supabaseHeaders({"Content-Type":"application/json","Prefer":"return=minimal"}),
+        method:"POST",
+        headers:supabaseHeaders({
+          "Content-Type":"application/json",
+          "Prefer":"resolution=merge-duplicates,return=representation"
+        }),
         body:JSON.stringify(payload)
       }
     );
-    if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
+    const raw = await res.text();
+    if(!res.ok) throw new Error("HTTP "+res.status+" "+raw);
+
+    let rows=[];
+    try{ rows = raw ? JSON.parse(raw) : []; }catch(_){ rows=[]; }
+    const saved = Array.isArray(rows) ? rows.find(x=>Number(x.id)===SUPABASE_ROW_ID) : null;
+    if(!saved) throw new Error("Supabase 未返回已保存的 id=1 记录，拒绝把本机状态标记为已同步");
+
+    // 再核对云端返回的数据确实包含本次快照，避免“假成功”后被旧数据覆盖
+    const localJson = JSON.stringify(payload.data_json);
+    const remoteJson = JSON.stringify(saved.data_json || {});
+    if(localJson !== remoteJson){
+      throw new Error("云端返回的数据与本机待保存数据不一致");
+    }
+
     __lastSavedRevision = Math.max(__lastSavedRevision, revisionToSave);
     window.__lastCloudSaveAt = Date.now();
     return true;
   }catch(err){
     console.error("Supabase save failed:", err);
-    showRuntimeMessage("这次云端保存失败，请检查网络后再试。");
+    // 保存失败时保持 __localRevision > __lastSavedRevision，自动拉取会继续被禁止，
+    // 因而绝不会再把用户刚输入的数据删掉。
+    showRuntimeMessage("云端保存失败，但本页这笔记录会保留，不会再被自动删除。请稍后重试。");
     return false;
   }finally{
     __cloudSaving = false;
     if(__cloudSaveAgain || __localRevision > revisionToSave){
       __cloudSaveAgain = false;
-      setTimeout(saveCloudState, 80);
+      setTimeout(saveCloudState, 300);
     }
   }
 }
