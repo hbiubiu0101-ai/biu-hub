@@ -644,206 +644,199 @@ function persistBudget(){
 ================================================ */
 let DATA = {};
 let __cloudReady = false;
-let __cloudSaving = false;
-let __cloudSaveTimer = null;
-let __cloudRefreshBusy = false;
-let __lastCloudUpdatedAt = "";
+let __syncBusy = false;
+let __lastRecordsSignature = "";
 
 const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
 const SUPABASE_ROW_ID = 1;
-const LOCAL_CACHE_KEY = "biu_bookkeeping_cache_v148";
+const LOCAL_CACHE_KEY = "biu_bookkeeping_records_v200";
 
 function supabaseHeaders(extra={}){
-  return {
-    apikey: SUPABASE_KEY,
-    Authorization: "Bearer " + SUPABASE_KEY,
-    ...extra
-  };
+  return {apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY, ...extra};
 }
-
-function setSyncState(state, detail=""){
-  window.__biuSyncState = {state, detail, at:new Date().toISOString()};
-  let el = document.getElementById("biuSyncState");
+function setSyncState(text, bad=false){
+  let el=document.getElementById("biuSyncState");
   if(!el){
-    el = document.createElement("div");
-    el.id = "biuSyncState";
-    el.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:9999;padding:7px 10px;border:1px solid #ddd7ca;border-radius:8px;background:#fffdf8;color:#687069;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.06);";
+    el=document.createElement("div"); el.id="biuSyncState";
+    el.style.cssText="position:fixed;right:14px;bottom:14px;z-index:9999;padding:7px 10px;border:1px solid #ddd7ca;border-radius:8px;background:#fffdf8;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.06)";
     document.body.appendChild(el);
   }
-  const map = {
-    local:"已保存本机",
-    saving:"正在同步…",
-    synced:"云端已同步",
-    error:"同步失败 · 已保存在本机"
-  };
-  el.textContent = map[state] || state;
-  el.title = detail || "";
+  el.textContent=text; el.style.color=bad?"#b4482e":"#687069";
 }
-
-function readLocalCache(){
-  try{
-    const c = JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY) || "null");
-    return c && typeof c==="object" ? c : null;
-  }catch(_){ return null; }
+function allLocalRecords(){
+  return Object.values(DATA).flat().filter(Boolean);
 }
-function writeLocalCache(dirty=true){
-  try{
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
-      data:DATA,
-      budget:BUDGET,
-      dirty:!!dirty,
-      cloudUpdatedAt:__lastCloudUpdatedAt || "",
-      savedAt:new Date().toISOString()
-    }));
-    setSyncState(dirty ? "local" : "synced");
-  }catch(err){ console.error("local cache failed",err); }
+function normalizeRecord(r){
+  if(!r.createdAt) r.createdAt=Date.now()+Math.floor(Math.random()*1000);
+  if(!r.time) r.time="00:00";
+  return r;
+}
+function cacheLocal(){
+  try{ localStorage.setItem(LOCAL_CACHE_KEY,JSON.stringify({data:DATA,budget:BUDGET,at:Date.now()})); }catch(_){}
 }
 function restoreLocalCache(){
-  const c=readLocalCache();
-  if(!c) return false;
-  if(c.data && typeof c.data==="object") DATA=c.data;
-  if(c.budget && typeof c.budget==="object") BUDGET={...DEFAULT_BUDGET,...c.budget};
-  BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-  __lastCloudUpdatedAt=c.cloudUpdatedAt || "";
-  setSyncState(c.dirty ? "local" : "synced");
-  return true;
+  try{
+    const x=JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY)||"null");
+    if(!x) return false;
+    if(x.data && typeof x.data==="object") DATA=x.data;
+    if(x.budget && typeof x.budget==="object") BUDGET={...DEFAULT_BUDGET,...x.budget};
+    BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
+    return true;
+  }catch(_){return false}
 }
-
-async function fetchCloudRow(){
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=id,data_json,budget_json,updated_at&_=${Date.now()}`,{
-    cache:"no-store",
-    headers:supabaseHeaders({"Cache-Control":"no-cache"})
-  });
-  const raw=await res.text();
-  if(!res.ok) throw new Error(`GET ${res.status}: ${raw}`);
-  const rows=raw ? JSON.parse(raw) : [];
-  return rows?.[0] || null;
+function rowToRecord(x){
+  return {
+    createdAt:Number(x.client_id),
+    amt:Number(x.amount||0),
+    cat:x.category||"其他",
+    pay:x.payment||"",
+    note:x.note||"",
+    date:x.expense_date||"",
+    time:(x.expense_time||"00:00").slice(0,5)
+  };
 }
-
-async function saveCloudState(){
-  if(!__cloudReady || __cloudSaving) return false;
-  __cloudSaving=true;
-  setSyncState("saving");
-
-  const payload={
-    id:SUPABASE_ROW_ID,
-    data_json:JSON.parse(JSON.stringify(DATA)),
-    budget_json:JSON.parse(JSON.stringify(BUDGET)),
+function recordToRow(r){
+  normalizeRecord(r);
+  return {
+    client_id:String(r.createdAt),
+    amount:Number(r.amt||0),
+    category:r.cat||"其他",
+    payment:r.pay||"",
+    note:r.note||"",
+    expense_date:r.date,
+    expense_time:(r.time||"00:00")+":00",
     updated_at:new Date().toISOString()
   };
-
+}
+function buildData(rows){
+  const next={};
+  rows.forEach(x=>{
+    const r=rowToRecord(x);
+    if(!r.date) return;
+    const m=r.date.slice(0,7);
+    (next[m]=next[m]||[]).push(r);
+  });
+  return next;
+}
+async function api(path,opt={}){
+  const res=await fetch(SUPABASE_URL+"/rest/v1/"+path,{
+    cache:"no-store",
+    ...opt,
+    headers:supabaseHeaders({"Cache-Control":"no-cache",...(opt.headers||{})})
+  });
+  const raw=await res.text();
+  if(!res.ok) throw new Error(`${res.status}: ${raw}`);
+  return raw?JSON.parse(raw):null;
+}
+async function fetchRecords(){
+  return await api("bookkeeping_records?select=client_id,amount,category,payment,note,expense_date,expense_time,updated_at&order=expense_date.asc,expense_time.asc,client_id.asc&_="+Date.now()) || [];
+}
+async function upsertRecord(r){
+  setSyncState("正在同步…");
+  const rows=await api("bookkeeping_records?on_conflict=client_id",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},
+    body:JSON.stringify(recordToRow(r))
+  });
+  if(!Array.isArray(rows)||!rows.length) throw new Error("云端未返回记录");
+  setSyncState("云端已同步");
+}
+async function deleteCloudRecord(r){
+  if(!r?.createdAt) return;
+  setSyncState("正在同步…");
+  await api("bookkeeping_records?client_id=eq."+encodeURIComponent(String(r.createdAt)),{
+    method:"DELETE",headers:{"Prefer":"return=minimal"}
+  });
+  setSyncState("云端已同步");
+}
+async function saveBudgetCloud(){
+  await api("bookkeeping_state?on_conflict=id",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify({id:1,budget_json:BUDGET,updated_at:new Date().toISOString()})
+  });
+}
+async function loadBudgetCloud(){
   try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/bookkeeping_state?on_conflict=id`,{
-      method:"POST",
-      cache:"no-store",
-      headers:supabaseHeaders({
-        "Content-Type":"application/json",
-        "Prefer":"resolution=merge-duplicates,return=representation"
-      }),
-      body:JSON.stringify(payload)
-    });
-    const raw=await res.text();
-    if(!res.ok) throw new Error(`POST ${res.status}: ${raw}`);
-    const rows=raw ? JSON.parse(raw) : [];
-    const saved=Array.isArray(rows) ? rows.find(x=>Number(x.id)===SUPABASE_ROW_ID) : null;
-    if(!saved) throw new Error("Supabase 没有返回 id=1");
-
-    // 再 GET 一次，以服务端实际数据为准验证写入。
-    const verify=await fetchCloudRow();
-    if(!verify) throw new Error("写入后读取不到 id=1");
-    if(JSON.stringify(verify.data_json || {}) !== JSON.stringify(payload.data_json)){
-      throw new Error("写入后校验失败：云端 data_json 与本机不一致");
+    const rows=await api("bookkeeping_state?id=eq.1&select=budget_json");
+    const b=rows?.[0]?.budget_json;
+    if(b&&typeof b==="object"){
+      BUDGET={...DEFAULT_BUDGET,...b};
+      BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     }
-
-    __lastCloudUpdatedAt=verify.updated_at || saved.updated_at || payload.updated_at;
-    writeLocalCache(false);
-    setSyncState("synced",__lastCloudUpdatedAt);
-    return true;
-  }catch(err){
-    console.error("Supabase save failed",err);
-    writeLocalCache(true);
-    setSyncState("error",String(err));
-    return false;
-  }finally{
-    __cloudSaving=false;
-  }
+  }catch(e){console.warn(e)}
 }
 
-function queueCloudSave(){
-  writeLocalCache(true);               // 第一步：立即保本机
-  clearTimeout(__cloudSaveTimer);
-  __cloudSaveTimer=setTimeout(async()=>{
-    __cloudSaveTimer=null;
-    await saveCloudState();            // 第二步：立即推云端
-  },80);
+/* 老 data_json 只在新表完全为空时迁移一次，避免旧云端数据丢失。 */
+async function migrateLegacyIfNeeded(){
+  const rows=await fetchRecords();
+  if(rows.length) return rows;
+  try{
+    const old=await api("bookkeeping_state?id=eq.1&select=data_json");
+    const obj=old?.[0]?.data_json;
+    const legacy=obj&&typeof obj==="object"?Object.values(obj).flat():[];
+    if(!legacy.length) return rows;
+    for(const oldr of legacy){
+      const r={...oldr};
+      normalizeRecord(r);
+      await upsertRecord(r);
+    }
+    return await fetchRecords();
+  }catch(e){console.warn("legacy migrate failed",e);return rows}
 }
-function persistData(){ queueCloudSave(); }
-
 async function loadCloudState({silent=false}={}){
-  __cloudReady=true;
-  const local=readLocalCache();
-
-  // 本机有未同步修改：先推云端，绝不让旧云端覆盖。
-  if(local?.dirty){
-    await saveCloudState();
-    return true;
-  }
-
+  if(__syncBusy) return false;
+  __syncBusy=true;
   try{
-    const cloud=await fetchCloudRow();
-    if(!cloud) return false;
-    DATA=cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
-    BUDGET=cloud.budget_json && typeof cloud.budget_json==="object" ? {...DEFAULT_BUDGET,...cloud.budget_json} : {...DEFAULT_BUDGET};
-    BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-    __lastCloudUpdatedAt=cloud.updated_at || "";
-    writeLocalCache(false);
+    let rows=await migrateLegacyIfNeeded();
+    DATA=buildData(rows);
+    await loadBudgetCloud();
+    __lastRecordsSignature=JSON.stringify(rows.map(x=>[x.client_id,x.updated_at]));
+    __cloudReady=true;
+    cacheLocal();
     renderAll();
+    setSyncState("云端已同步");
     return true;
   }catch(err){
-    console.error("Supabase load failed",err);
-    if(!silent) setSyncState("error",String(err));
+    console.error(err); __cloudReady=true;
+    if(!silent) setSyncState("云端读取失败 · 显示本机缓存",true);
     return false;
-  }
+  }finally{__syncBusy=false}
 }
 
+/* 兼容原页面调用：新增/编辑后只 UPSERT 当前所有本机记录，不再整包覆盖云端。 */
+async function persistData(){
+  cacheLocal();
+  try{
+    const records=allLocalRecords();
+    for(const r of records) await upsertRecord(r);
+    cacheLocal();
+  }catch(err){
+    console.error(err); setSyncState("同步失败 · 已保存在本机",true);
+  }
+}
+function queueCloudSave(){ cacheLocal(); saveBudgetCloud().then(()=>setSyncState("云端已同步")).catch(e=>{console.error(e);setSyncState("预算同步失败",true)}); }
+
+/* 跨设备只读取逐笔记录；不会用一台设备的整包 JSON 覆盖另一台。 */
 async function refreshCloudState(){
-  if(__cloudRefreshBusy || __cloudSaving || __cloudSaveTimer) return false;
-  if(readLocalCache()?.dirty) return false;
-
-  __cloudRefreshBusy=true;
+  if(__syncBusy) return;
+  __syncBusy=true;
   try{
-    const cloud=await fetchCloudRow();
-    if(!cloud) return false;
-    if((cloud.updated_at || "") === __lastCloudUpdatedAt) return true;
-
-    DATA=cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
-    BUDGET=cloud.budget_json && typeof cloud.budget_json==="object" ? {...DEFAULT_BUDGET,...cloud.budget_json} : {...DEFAULT_BUDGET};
-    BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-    __lastCloudUpdatedAt=cloud.updated_at || "";
-    writeLocalCache(false);
+    const rows=await fetchRecords();
+    const sig=JSON.stringify(rows.map(x=>[x.client_id,x.updated_at]));
+    if(sig===__lastRecordsSignature) return;
+    DATA=buildData(rows);
+    __lastRecordsSignature=sig;
+    cacheLocal();
     renderAll();
-    return true;
-  }catch(err){
-    console.error("Supabase refresh failed",err);
-    return false;
-  }finally{
-    __cloudRefreshBusy=false;
-  }
+    setSyncState("云端已同步");
+  }catch(err){console.error(err)}
+  finally{__syncBusy=false}
 }
-
-document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible") refreshCloudState();
-});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshCloudState()});
 window.addEventListener("focus",refreshCloudState);
-setInterval(()=>{
-  if(document.visibilityState==="visible") refreshCloudState();
-},2000);
-
-window.addEventListener("pagehide",()=>{
-  const c=readLocalCache();
-  if(c?.dirty) setSyncState("local");
-});
+setInterval(()=>{if(document.visibilityState==="visible")refreshCloudState()},2000);
 
 function showRuntimeMessage(msg){
   let n=document.getElementById("runtimeNotice");
@@ -1036,7 +1029,7 @@ function renderLedger(m){
     tr.appendChild(actionTd);
     const deleteTd = el("td","delete-cell"); deleteTd.style.textAlign="center";
     const btn = el("button","del-btn","✕"); btn.title="删除这笔记录";
-    btn.onclick = ()=>{ const rm=r.date.slice(0,7); DATA[rm]=(DATA[rm]||[]).filter(x=>x!==r); persistData(); renderAll(); };
+    btn.onclick = async ()=>{ const rm=r.date.slice(0,7); DATA[rm]=(DATA[rm]||[]).filter(x=>x!==r); cacheLocal(); renderAll(); try{ await deleteCloudRecord(r); }catch(e){ console.error(e); setSyncState("删除同步失败",true); } };
     deleteTd.appendChild(btn); tr.appendChild(deleteTd);
     body.appendChild(tr);
   });
@@ -1291,6 +1284,8 @@ function addAi(i){
   const date = card.querySelector(".rc-date").value;
   if(!amt || amt<=0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   const rec = {
+    createdAt: Date.now()+Math.floor(Math.random()*1000),
+    time: __nowHHMM(),
     amt: Math.round(amt*100)/100,
     cat: card.querySelector(".rc-cat").value,
     date,
