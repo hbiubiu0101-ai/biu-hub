@@ -59,6 +59,16 @@ body::before{
 .brand-mark svg{width:20px;height:20px}
 .brand h1{font-size:19px;font-weight:900;letter-spacing:.01em}
 .brand p{font-size:12px;color:var(--ink-2);margin-top:1px}
+.refresh-btn{
+  width:34px;height:34px;border:1px solid var(--line);background:var(--panel);border-radius:7px;
+  display:grid;place-items:center;cursor:pointer;color:var(--jade);margin-left:6px;flex:none;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.refresh-btn:hover{border-color:var(--jade);background:var(--jade-soft);color:var(--jade-deep)}
+.refresh-btn:disabled{cursor:default;opacity:.65}
+.refresh-btn svg{width:17px;height:17px}
+.refresh-btn.loading svg{animation:refreshSpin .8s linear infinite}
+@keyframes refreshSpin{to{transform:rotate(360deg)}}
 .top-actions{display:flex;align-items:center;gap:10px}
 .date-chip{
   display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
@@ -809,6 +819,9 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
         <h1>消费智记</h1>
         <p>记录每一笔 · 看懂每一次支出</p>
       </div>
+      <button type="button" id="manualRefreshBtn" class="refresh-btn" title="刷新最新数据" aria-label="刷新最新数据">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M6.1 9A7 7 0 0 1 18.2 6.2L20 11M4 13l1.8 4.8A7 7 0 0 0 17.9 15"/></svg>
+      </button>
     </div>
     <div class="top-actions">
       <div class="date-chip">
@@ -1151,6 +1164,21 @@ async function refreshFromCloud(showState=true){
     return false;
   }finally{
     __syncBusy=false;
+  }
+}
+
+async function manualRefresh(){
+  const btn=$("manualRefreshBtn");
+  if(!btn || btn.disabled) return;
+  btn.disabled=true;
+  btn.classList.add("loading");
+  btn.title="正在刷新…";
+  try{
+    await refreshFromCloud(true);
+  }finally{
+    btn.disabled=false;
+    btn.classList.remove("loading");
+    btn.title="刷新最新数据";
   }
 }
 
@@ -1911,6 +1939,8 @@ $("ledgerDateClear")?.addEventListener("click",()=>{
 syncLedgerDateFilter();
 
 /* ============ 事件绑定 ============ */
+$("manualRefreshBtn")?.addEventListener("click", manualRefresh);
+
 $("prevMonth").onclick = ()=>{ state.month = prevMonth(state.month); state.ledgerDateFilter=""; syncLedgerDateFilter(); renderAll(); };
 $("nextMonth").onclick = ()=>{ state.month = nextMonth(state.month); state.ledgerDateFilter=""; syncLedgerDateFilter(); renderAll(); };
 $("saveBtn").onclick = saveRecord;
