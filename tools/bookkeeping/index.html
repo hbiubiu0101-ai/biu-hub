@@ -556,6 +556,17 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 .donut-card-top strong{justify-self:end!important;color:#262B27!important;font-weight:600!important}
 .donut-card-percent{display:block!important;margin-top:5px!important;padding-left:14px!important;font-size:11px!important;line-height:1.2!important;font-weight:700!important;color:#262B27!important}
 </style>
+
+<style id="v37-card-tone-fix">
+.donut-category-card{
+  background:color-mix(in srgb,var(--cat-color) 5%,white)!important;
+  border-color:color-mix(in srgb,var(--cat-color) 14%,#E4DED2)!important;
+}
+.donut-category-card:hover{
+  background:color-mix(in srgb,var(--cat-color) 7%,white)!important;
+  border-color:color-mix(in srgb,var(--cat-color) 28%,#E4DED2)!important;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1720,7 +1731,7 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 
 
-<script id="v36-latest-date-default">
+<script id="v37-latest-date-default">
 (function(){
   function localToday(){
     const d=new Date();
@@ -1730,11 +1741,11 @@ document.addEventListener("DOMContentLoaded",function(){
     return `${y}-${m}-${day}`;
   }
   function setLatestExpenseDate(){
-    const el=document.querySelector('input[type="date"]');
+    const el=document.getElementById("fDate");
     if(!el) return;
-    // 每次重新打开/刷新页面，右侧记一笔日期默认回到本机“今天”。
-    el.value=localToday();
-    el.defaultValue=localToday();
+    const today=localToday();
+    el.value=today;
+    el.defaultValue=today;
   }
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>setTimeout(setLatestExpenseDate,0));
