@@ -408,6 +408,37 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 }
 </style>
 
+
+<style id="mobile-ledger-sync-fix-v142">
+/* V1.4.2：手机明细重新排版，避免日期/编辑/删除互相覆盖 */
+@media (max-width:700px){
+  .app{padding-left:10px!important;padding-right:10px!important}
+  .ledger-fixed-card{height:390px!important;min-height:390px!important;max-height:390px!important}
+  .ledger-fixed-card .ledger-scroll{overflow-x:hidden!important}
+  .ledger-fixed-card table.ledger,
+  .ledger-fixed-card table.ledger tbody{display:block!important;width:100%!important}
+  .ledger-fixed-card table.ledger thead{display:none!important}
+  .ledger-fixed-card table.ledger tr{
+    display:grid!important;
+    grid-template-columns:minmax(64px,.8fr) minmax(82px,1fr) minmax(108px,1.2fr) 42px!important;
+    grid-template-areas:"cat amount datetime delete" "note note edit edit"!important;
+    align-items:center!important;gap:8px!important;padding:12px!important;
+    border-bottom:1px dashed var(--line)!important;
+  }
+  .ledger-fixed-card table.ledger td{display:block!important;width:auto!important;min-width:0!important;padding:0!important;border:0!important;text-align:left!important}
+  .ledger-fixed-card table.ledger td:nth-child(1){grid-area:cat!important}
+  .ledger-fixed-card table.ledger td:nth-child(2){grid-area:amount!important;font-size:14px!important;font-weight:700!important}
+  .ledger-fixed-card table.ledger td:nth-child(3){grid-area:note!important;display:block!important;color:var(--ink-3)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-size:11px!important}
+  .ledger-fixed-card table.ledger td:nth-child(4){grid-area:datetime!important;font-size:11px!important;white-space:nowrap!important}
+  .ledger-fixed-card table.ledger td:nth-child(5){grid-area:edit!important;text-align:right!important}
+  .ledger-fixed-card table.ledger td:nth-child(6){grid-area:delete!important;text-align:right!important}
+  .ledger-fixed-card .cat-tag{padding:5px 7px!important;white-space:nowrap!important}
+  .ledger-fixed-card .ledger-edit-btn{padding:4px 10px!important}
+  .ledger-fixed-card .del-btn{margin-left:auto!important}
+  .ledger-fixed-card .panel-head{gap:8px!important}
+  .ledger-fixed-card .panel-head .hint{font-size:10px!important;text-align:right!important}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -671,6 +702,7 @@ async function saveCloudState(){
       }
     );
     if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
+    window.__lastCloudSaveAt = Date.now();
   }catch(err){
     console.error("Supabase save failed:", err);
     showRuntimeMessage("这次云端保存失败，请检查网络后再试。");
@@ -684,9 +716,26 @@ async function saveCloudState(){
 }
 function queueCloudSave(){
   clearTimeout(__cloudSaveTimer);
-  __cloudSaveTimer = setTimeout(saveCloudState, 220);
+  __cloudSaveTimer = setTimeout(()=>{ saveCloudState(); }, 120);
 }
 function persistData(){ queueCloudSave(); }
+
+/* 跨设备同步：电脑/手机重新回到页面时立即从 Supabase 拉取最新数据；
+   页面保持打开时也会轻量轮询，避免另一台设备记账后仍显示旧数据。 */
+let __cloudRefreshBusy = false;
+async function refreshCloudState(){
+  if(__cloudRefreshBusy || __cloudSaving) return;
+  __cloudRefreshBusy = true;
+  try{ await loadCloudState(); }
+  finally{ __cloudRefreshBusy = false; }
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") refreshCloudState();
+});
+window.addEventListener("focus", refreshCloudState);
+setInterval(()=>{
+  if(document.visibilityState === "visible") refreshCloudState();
+}, 8000);
 
 function showRuntimeMessage(msg){
   let n=document.getElementById("runtimeNotice");
