@@ -1,22 +1,357 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BIU Pages 测试</title>
-  <style>
-    body{margin:0;font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:#f6f7f9;color:#171717;display:grid;place-items:center;min-height:100vh}
-    .card{background:#fff;border:1px solid #e7e7e7;border-radius:20px;padding:36px 28px;text-align:center;box-shadow:0 10px 35px rgba(0,0,0,.06);width:min(82vw,420px)}
-    h1{margin:0 0 12px;font-size:28px}
-    p{margin:8px 0;color:#666;line-height:1.6}
-    .ok{display:inline-block;margin-top:14px;padding:8px 14px;border-radius:999px;background:#eef8f0;color:#167a36;font-weight:700}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能工作台 · 集成工具菜单</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B6B53'/%3E%3Cpath d='M7 11h6M7 16h6M7 21h6M17 11h8M17 16h8M17 21h8' stroke='%23F7F5EF' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ============ 设计令牌（与消费智记同一体系） ============ */
+:root{
+  --paper:#F6F4EE;
+  --panel:#FFFFFF;
+  --line:#E4E0D4;
+  --line-strong:#D5CFBF;
+  --ink:#262B27;
+  --ink-2:#5C645E;
+  --ink-3:#9AA19A;
+  --jade:#1B6B53;
+  --jade-deep:#13503E;
+  --jade-soft:#E3EFEA;
+  --amber:#C96F2B;
+  --amber-soft:#F7EADC;
+  --red:#B4482E;
+  --red-soft:#F6E4DE;
+  --blue:#3E6E8F;
+  --blue-soft:#E4EDF3;
+  --purple:#8A5A9E;
+  --purple-soft:#EFE7F4;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(38,43,39,.05),0 8px 24px rgba(38,43,39,.07);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--paper);color:var(--ink);font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;min-height:100vh;
+}
+/* 账本格线背景 */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(to bottom,transparent 31px,var(--line) 31px,var(--line) 32px,transparent 32px);
+  background-size:100% 32px;opacity:.25;
+}
+.app{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:22px 26px 52px}
+
+/* ============ 顶栏 ============ */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:4px 2px 22px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:42px;height:42px;border-radius:10px;background:var(--jade);color:#fff;
+  display:grid;place-items:center;flex:none;box-shadow:var(--shadow);
+}
+.brand-mark svg{width:22px;height:22px}
+.brand h1{font-size:20px;font-weight:900;letter-spacing:.01em}
+.brand p{font-size:12px;color:var(--ink-2);margin-top:1px}
+.top-info{display:flex;align-items:center;gap:10px}
+.date-chip{
+  display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:8px 14px;font-size:13px;color:var(--ink-2);
+}
+.date-chip svg{width:15px;height:15px;color:var(--jade)}
+.stat-chip{
+  background:var(--jade-soft);border:1px solid #CFE2DA;color:var(--jade-deep);
+  border-radius:var(--radius);padding:8px 14px;font-size:13px;font-weight:700;
+}
+
+/* ============ 标题区 ============ */
+.headline{padding:6px 2px 20px}
+.headline h2{font-size:24px;font-weight:900;letter-spacing:.01em}
+.headline p{font-size:13.5px;color:var(--ink-2);margin-top:5px;max-width:640px}
+
+/* ============ 工具条 ============ */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.search{
+  display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line-strong);
+  border-radius:9px;padding:9px 14px;min-width:260px;flex:1;max-width:380px;
+}
+.search svg{width:16px;height:16px;color:var(--ink-3);flex:none}
+.search input{
+  border:0;outline:0;background:transparent;font-size:14px;font-family:inherit;width:100%;color:var(--ink);
+}
+.search input::placeholder{color:var(--ink-3)}
+.tabs{display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:3px}
+.tabs button{
+  border:0;background:transparent;padding:7px 16px;border-radius:7px;font-size:13px;cursor:pointer;
+  color:var(--ink-2);font-family:inherit;font-weight:500;
+}
+.tabs button.active{background:var(--jade);color:#fff;font-weight:700}
+.tabs button.active:hover{background:var(--jade-deep)}
+
+/* ============ 工具卡片 ============ */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 20px 16px;cursor:pointer;position:relative;display:flex;flex-direction:column;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.card:active{transform:translateY(-1px)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+.card-ico{
+  width:46px;height:46px;border-radius:11px;display:grid;place-items:center;flex:none;
+}
+.card-ico svg{width:23px;height:23px}
+.badge{
+  font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap;
+}
+.badge.online{background:var(--jade-soft);color:var(--jade-deep)}
+.badge.building{background:var(--amber-soft);color:var(--amber)}
+.badge.plan{background:#ECEFF0;color:var(--ink-2)}
+.card h3{font-size:16px;font-weight:900}
+.card .cat{font-size:11px;color:var(--ink-3);font-weight:500;margin-top:2px}
+.card .desc{font-size:12.5px;color:var(--ink-2);margin-top:8px;line-height:1.65;flex:1}
+.card .foot{
+  display:flex;align-items:center;justify-content:space-between;margin-top:16px;
+  padding-top:13px;border-top:1px dashed var(--line);
+}
+.card .go{
+  display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;border:0;background:none;
+  cursor:pointer;font-family:inherit;padding:0;color:var(--ink-2);
+}
+.card .go svg{width:14px;height:14px;transition:transform .18s}
+.card:hover .go svg{transform:translateX(3px)}
+.card.online .go{color:var(--jade)}
+.card.building .go,.card.plan .go{color:var(--ink-3)}
+.card .version{font-size:11px;color:var(--ink-3)}
+
+/* 空态 */
+.empty{
+  grid-column:1/-1;text-align:center;padding:60px 0;color:var(--ink-3);font-size:13.5px;
+  background:var(--panel);border:1px dashed var(--line-strong);border-radius:var(--radius);
+}
+
+/* ============ 底部 ============ */
+.footnote{
+  margin-top:30px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  font-size:12px;color:var(--ink-3);
+}
+.footnote .hint{display:flex;align-items:center;gap:7px}
+.footnote .hint svg{width:14px;height:14px;color:var(--jade)}
+
+/* ============ Toast ============ */
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(16px);
+  background:var(--ink);color:#fff;font-size:13.5px;padding:11px 20px;border-radius:9px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:opacity .22s,transform .22s;
+  z-index:99;display:flex;align-items:center;gap:9px;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:15px;height:15px;color:#F0C987;flex:none}
+
+/* ============ 响应式 ============ */
+@media (max-width:980px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:700px){
+  .app{padding:16px 16px 40px}
+  .topbar{flex-direction:column;align-items:flex-start;gap:12px}
+  .grid{grid-template-columns:1fr}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .search{max-width:none}
+  .tabs{justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
 </head>
 <body>
-  <main class="card">
-    <h1>BIU 网页测试成功</h1>
-    <p>如果手机关闭 VPN 后仍能看到这个页面，说明 GitHub Pages 可以作为 BIU 工具中心的网页入口。</p>
-    <div class="ok">GitHub Pages ✓</div>
-  </main>
+<div class="app">
+
+  <!-- ===== 顶栏 ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </div>
+      <div>
+        <h1>智能工作台</h1>
+        <p>把常用工具装进一个入口</p>
+      </div>
+    </div>
+    <div class="top-info">
+      <div class="date-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <span id="todayLabel"></span>
+      </div>
+      <div class="stat-chip" id="statChip">共 0 个工具</div>
+    </div>
+  </header>
+
+  <!-- ===== 标题 ===== -->
+  <div class="headline">
+    <h2>集成工具菜单</h2>
+    <p>金融、生活、创作一站式入口。已有工具可直接打开，规划中的工具正在陆续上线。</p>
+  </div>
+
+  <!-- ===== 工具条 ===== -->
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="text" id="searchInput" placeholder="搜索工具名称或用途…">
+    </div>
+    <div class="tabs" id="stateTabs">
+      <button data-state="all" class="active">全部</button>
+      <button data-state="online">已上线</button>
+      <button data-state="building">建设中</button>
+      <button data-state="plan">规划中</button>
+    </div>
+  </div>
+
+  <!-- ===== 工具卡片 ===== -->
+  <main class="grid" id="toolGrid"></main>
+
+  <!-- ===== 底部 ===== -->
+  <footer class="footnote">
+    <div class="hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
+      各工具独立管理 · 云端能力逐步接入
+    </div>
+    <span>持续扩充中 · 欢迎提出你想集成的工具</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 工具清单（新增工具在此追加） ============ */
+const TOOLS = [
+  {
+    name:"消费记账台", cat:"生活", status:"online", version:"v1.3",
+    desc:"记录每一笔消费，月度预算、分类占比与智能消费洞察。",
+    icon:"ledger", tone:"jade", url:"./tools/bookkeeping/"
+  },
+  {
+    name:"股票工作台", cat:"金融", status:"building", version:"独立项目",
+    desc:"现有股票工作台继续独立运行，后续只在这里接入访问入口，不迁移代码。",
+    icon:"stock", tone:"red", url:""
+  },
+  {
+    name:"智能旅游", cat:"生活", status:"building", version:"规划中",
+    desc:"行程规划、景点攻略、预算与开销管理，让每次出行都有条有理。",
+    icon:"travel", tone:"blue", url:"./tools/travel/"
+  },
+  {
+    name:"创作工坊", cat:"创作", status:"plan", version:"规划中",
+    desc:"AI 内容创作与素材工作流，后续作为独立工具接入。",
+    icon:"create", tone:"purple", url:""
+  }
+];
+
+/* ============ 图标库 ============ */
+const ICONS = {
+  ledger:'<path d="M4 19.5V5a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 5v14.5M4 19.5h16M7 8.5h4M7 12h4M14 8.5h3M14 12h3"/>',
+  stock:'<path d="M3 17l6-6 4 4 7-8"/><path d="M17 7h3v3"/><path d="M6 21h12"/>',
+  travel:'<path d="M10.5 13.5L4 11l14-7 2 2-6.5 15-1.5-6.5z"/><path d="M21 3l-7 4"/>',
+  fund:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1.1-3 2.5c0 3.5 6 1.5 6 5 0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5"/>',
+  policy:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/>',
+  create:'<path d="M12 3l1.6 4.8L18 10l-4.4 2.2L12 17l-1.6-4.8L6 10l4.4-2.2L12 3z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/>'
+};
+const TONES = {
+  jade:{bg:"var(--jade-soft)",fg:"var(--jade)"},
+  red:{bg:"var(--red-soft)",fg:"var(--red)"},
+  blue:{bg:"var(--blue-soft)",fg:"var(--blue)"},
+  amber:{bg:"var(--amber-soft)",fg:"var(--amber)"},
+  purple:{bg:"var(--purple-soft)",fg:"var(--purple)"}
+};
+const STATUS = {
+  online:{label:"已上线", cls:"online"},
+  building:{label:"建设中", cls:"building"},
+  plan:{label:"规划中", cls:"plan"}
+};
+
+/* ============ 状态 ============ */
+const state = {keyword:"", filter:"all"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ============ 渲染 ============ */
+function render(){
+  const kw = state.keyword.trim().toLowerCase();
+  const list = TOOLS.filter(t=>{
+    const hitKw = !kw || (t.name+t.desc+t.cat).toLowerCase().includes(kw);
+    const hitState = state.filter==="all" || t.status===state.filter;
+    return hitKw && hitState;
+  });
+  const grid = $("toolGrid");
+  grid.innerHTML="";
+  if(!list.length){
+    grid.appendChild(Object.assign(document.createElement("div"),{className:"empty",textContent:"没有匹配的工具，换个关键词试试"}));
+    return;
+  }
+  list.forEach(t=>{
+    const tone = TONES[t.tone], st = STATUS[t.status];
+    const card = document.createElement("div");
+    card.className = "card "+t.status;
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-ico" style="background:${tone.bg};color:${tone.fg}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[t.icon]||ICONS.policy}</svg>
+        </div>
+        <span class="badge ${st.cls}">${st.label}</span>
+      </div>
+      <h3>${esc(t.name)}</h3>
+      <div class="cat">${esc(t.cat)}</div>
+      <div class="desc">${esc(t.desc)}</div>
+      <div class="foot">
+        <button class="go">${t.status==="online"?"打开工具":"敬请期待"}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+        <span class="version">${esc(t.version)}</span>
+      </div>`;
+    card.addEventListener("click", ()=>openTool(t));
+    grid.appendChild(card);
+  });
+}
+function openTool(t){
+  if(t.status==="online" && t.url){ window.location.href = t.url; return; }
+  toast("「"+t.name+"」正在建设中，敬请期待");
+}
+
+/* ============ Toast ============ */
+let toastTimer=null;
+function toast(msg){
+  const el = $("toast");
+  el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5h.01"/></svg>'+
+    '<span>'+esc(msg)+'</span>';
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove("show"), 2200);
+}
+
+/* ============ 事件 ============ */
+$("searchInput").addEventListener("input", e=>{ state.keyword=e.target.value; render(); });
+document.querySelectorAll("#stateTabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#stateTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    state.filter = b.dataset.state;
+    render();
+  });
+});
+
+/* ============ 启动 ============ */
+(function init(){
+  $("todayLabel").textContent = new Date().toLocaleDateString("zh-CN",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+  const online = TOOLS.filter(t=>t.status==="online").length;
+  $("statChip").textContent = `共 ${TOOLS.length} 个工具 · ${online} 个已上线`;
+  render();
+})();
+</script>
 </body>
 </html>
