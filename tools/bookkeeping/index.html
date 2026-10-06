@@ -582,6 +582,37 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 .donut-category-card *{color:#262B27!important}
 .donut-card-top i{background:var(--cat-color)!important}
 </style>
+
+<style id="biu-insight-final-fix">
+#insightList{
+  display:grid!important;
+  gap:9px!important;
+  min-height:120px!important;
+  padding:12px 14px 14px!important;
+  overflow:visible!important;
+}
+#insightList .insight-result-card{
+  display:grid!important;
+  grid-template-columns:8px minmax(0,1fr)!important;
+  gap:9px!important;
+  align-items:start!important;
+  border:1px solid #E4DED2!important;
+  border-radius:9px!important;
+  padding:10px 11px!important;
+  background:#fff!important;
+}
+#insightList .insight-result-dot{
+  width:7px!important;height:7px!important;border-radius:50%!important;
+  margin-top:5px!important;background:#1B6B53!important;
+}
+#insightList .insight-result-card.amber .insight-result-dot{background:#C96F2B!important}
+#insightList .insight-result-card.blue .insight-result-dot{background:#3E6E8F!important}
+#insightList .insight-result-card.red .insight-result-dot{background:#B4482E!important}
+#insightList .insight-result-card b{display:block!important;color:#262B27!important;font-size:12px!important;line-height:1.45!important}
+#insightList .insight-result-card p{display:block!important;margin:3px 0 0!important;color:#727A74!important;font-size:11px!important;line-height:1.55!important}
+#insightList .insight-empty{padding:8px 2px!important;color:#9AA19A!important;font-size:12px!important}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -1770,5 +1801,116 @@ document.addEventListener("DOMContentLoaded",function(){
   window.addEventListener("pageshow",setLatestExpenseDate);
 })();
 </script>
+
+<script id="biu-insight-final-js">
+(function(){
+  function h(v){
+    return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function yuan(v){
+    const n=Number(v||0);
+    return "¥"+n.toLocaleString("zh-CN",{minimumFractionDigits:0,maximumFractionDigits:2});
+  }
+  function currentInsightMonth(){
+    if(window.state && state.month) return state.month;
+    const d=new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  }
+  function recordsForInsight(month){
+    try{
+      if(window.DATA && Array.isArray(DATA[month])){
+        return DATA[month].map(r=>({
+          amt:Number(r.amt ?? r.amount ?? 0),
+          cat:String(r.cat ?? r.category ?? "其他"),
+          note:String(r.note ?? ""),
+          date:String(r.date ?? r.expense_date ?? ""),
+          time:String(r.time ?? r.expense_time ?? "")
+        })).filter(r=>Number.isFinite(r.amt)&&r.amt>0);
+      }
+    }catch(e){}
+    return [];
+  }
+  function drawInsight(){
+    const box=document.getElementById("insightList");
+    if(!box) return;
+    const month=currentInsightMonth();
+    const recs=recordsForInsight(month);
+
+    if(!recs.length){
+      box.innerHTML='<div class="insight-empty">本月暂无消费记录，新增一笔后会自动生成洞察。</div>';
+      return;
+    }
+
+    const total=recs.reduce((s,r)=>s+r.amt,0);
+    const groups={};
+    recs.forEach(r=>groups[r.cat]=(groups[r.cat]||0)+r.amt);
+    const ranked=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+    const top=ranked[0];
+    const second=ranked[1]||null;
+    const maxRec=recs.reduce((a,b)=>a.amt>=b.amt?a:b);
+    const avg=total/recs.length;
+
+    // 按有记录的日期计算日均，更符合“有消费就分析”
+    const activeDays=new Set(recs.map(r=>r.date).filter(Boolean)).size || 1;
+    const dailyAvg=total/activeDays;
+
+    const cards=[
+      {
+        cls:"jade",
+        title:`本月支出 ${yuan(total)} · ${recs.length} 笔`,
+        desc:`有消费的 ${activeDays} 天中，日均支出 ${yuan(dailyAvg)}；平均每笔 ${yuan(avg)}。`
+      },
+      {
+        cls:"amber",
+        title:`主要支出：${top[0]} ${yuan(top[1])}`,
+        desc:`占本月 ${(top[1]/total*100).toFixed(1)}%${second?`；第二是 ${second[0]} ${yuan(second[1])}（${(second[1]/total*100).toFixed(1)}%）`:""}。`
+      },
+      {
+        cls:"blue",
+        title:`最大单笔 ${yuan(maxRec.amt)}`,
+        desc:`${maxRec.cat}${maxRec.note?` · ${maxRec.note}`:""}${maxRec.date?` · ${maxRec.date}`:""}。`
+      }
+    ];
+
+    let budget=0;
+    try{ budget=Number(window.BUDGET_TOTAL ?? BUDGET_TOTAL ?? 0); }catch(e){}
+    if(budget>0){
+      const left=budget-total;
+      cards.push(left>=0?{
+        cls:"jade",
+        title:`预算剩余 ${yuan(left)}`,
+        desc:`预算 ${yuan(budget)}，当前已使用 ${(total/budget*100).toFixed(1)}%。`
+      }:{
+        cls:"red",
+        title:`本月已超预算 ${yuan(Math.abs(left))}`,
+        desc:`预算 ${yuan(budget)}，当前支出达到预算的 ${(total/budget*100).toFixed(1)}%。`
+      });
+    }
+
+    box.innerHTML=cards.map(c=>`
+      <div class="insight-result-card ${c.cls}">
+        <span class="insight-result-dot"></span>
+        <div><b>${h(c.title)}</b><p>${h(c.desc)}</p></div>
+      </div>`).join("");
+  }
+
+  // 覆盖旧函数，所有原来的 renderAll / 云端同步回调都会调用到这一版。
+  window.renderInsights=function(){ drawInsight(); };
+
+  // 首次、本地新增/编辑、云端同步后的 DOM/数据变化都补一次刷新。
+  document.addEventListener("DOMContentLoaded",()=>{
+    drawInsight();
+    setTimeout(drawInsight,100);
+    setTimeout(drawInsight,500);
+    setTimeout(drawInsight,1500);
+  });
+  window.addEventListener("focus",()=>setTimeout(drawInsight,80));
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible") setTimeout(drawInsight,80);
+  });
+  setInterval(drawInsight,2000);
+})();
+</script>
+
 </body>
 </html>
