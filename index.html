@@ -650,6 +650,7 @@ let __cloudSaveAgain = false;
 let __localRevision = 0;       // 本机数据每次修改都会递增
 let __lastSavedRevision = 0;   // 已成功写入云端的本机版本
 let __cloudRefreshBusy = false;
+let __lastCloudUpdatedAt = "";
 const LOCAL_PENDING_KEY = "biu_bookkeeping_pending_v145";
 
 function saveLocalPending(){
@@ -722,6 +723,7 @@ async function loadCloudState({silent=false}={}){
     BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     __cloudReady = true;
     __lastSavedRevision = __localRevision;
+    __lastCloudUpdatedAt = cloud.updated_at || __lastCloudUpdatedAt;
     renderAll();
     return true;
   }catch(err){
@@ -798,6 +800,7 @@ async function saveCloudState(){
 
     __lastSavedRevision = Math.max(__lastSavedRevision, revisionToSave);
     window.__lastCloudSaveAt = Date.now();
+    __lastCloudUpdatedAt = saved.updated_at || __lastCloudUpdatedAt;
     clearLocalPending();
     return true;
   }catch(err){
@@ -836,8 +839,52 @@ async function refreshCloudState(){
   try{ await loadCloudState({silent:true}); }
   finally{ __cloudRefreshBusy = false; }
 }
-// V1.4.5：取消页面停留期间的自动云端覆盖。
- // 跨设备数据在重新打开/刷新页面时读取；本机未确认保存的数据永远优先。
+// V1.4.6：安全跨设备刷新。
+// 只有本机完全没有待同步修改时，才允许读取云端；并且仅在云端 updated_at 发生变化时更新页面。
+async function safeRefreshFromCloud(){
+  if(__cloudRefreshBusy || __cloudSaving || __cloudSaveTimer) return false;
+  if(getLocalPending() || __localRevision > __lastSavedRevision) return false;
+
+  __cloudRefreshBusy = true;
+  try{
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=data_json,budget_json,updated_at`,
+      {cache:"no-store", headers:supabaseHeaders()}
+    );
+    if(!res.ok) return false;
+    const rows = await res.json();
+    const cloud = rows?.[0];
+    if(!cloud) return false;
+
+    const remoteUpdatedAt = cloud.updated_at || "";
+    if(remoteUpdatedAt && remoteUpdatedAt === __lastCloudUpdatedAt) return true;
+
+    // 再检查一次：请求期间如果本机产生了新修改，放弃本次云端结果。
+    if(__cloudSaving || __cloudSaveTimer || getLocalPending() || __localRevision > __lastSavedRevision) return false;
+
+    DATA = cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
+    BUDGET = cloud.budget_json && typeof cloud.budget_json==="object"
+      ? {...DEFAULT_BUDGET, ...cloud.budget_json}
+      : {...DEFAULT_BUDGET};
+    BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
+    __lastCloudUpdatedAt = remoteUpdatedAt;
+    renderAll();
+    return true;
+  }catch(err){
+    console.error("safe cloud refresh failed:", err);
+    return false;
+  }finally{
+    __cloudRefreshBusy = false;
+  }
+}
+
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") setTimeout(safeRefreshFromCloud, 500);
+});
+window.addEventListener("focus", ()=>setTimeout(safeRefreshFromCloud, 500));
+setInterval(()=>{
+  if(document.visibilityState === "visible") safeRefreshFromCloud();
+}, 5000);
 
 function showRuntimeMessage(msg){
   let n=document.getElementById("runtimeNotice");
