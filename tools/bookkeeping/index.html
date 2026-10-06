@@ -645,55 +645,39 @@ function persistBudget(){
 let DATA = {};
 let __cloudReady = false;
 let __syncBusy = false;
-let __lastRecordsSignature = "";
+let __refreshTimer = null;
 
 const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
 const SUPABASE_ROW_ID = 1;
-const LOCAL_CACHE_KEY = "biu_bookkeeping_records_v200";
+const LOCAL_CACHE_KEY = "biu_bookkeeping_v220_cache";
 
 function supabaseHeaders(extra={}){
-  return {apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY, ...extra};
+  return {
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    ...extra
+  };
 }
-function setSyncState(text, bad=false){
+
+function setSyncState(text,bad=false){
   let el=document.getElementById("biuSyncState");
   if(!el){
-    el=document.createElement("div"); el.id="biuSyncState";
-    el.style.cssText="position:fixed;right:14px;bottom:14px;z-index:9999;padding:7px 10px;border:1px solid #ddd7ca;border-radius:8px;background:#fffdf8;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.06)";
-    document.body.appendChild(el);
-  }
-  el.textContent=text; el.style.color=bad?"#b4482e":"#687069";
-}
-function setCloudReadStatus(text,bad=false){
-  let el=document.getElementById("biuCloudReadStatus");
-  if(!el){
     el=document.createElement("div");
-    el.id="biuCloudReadStatus";
-    el.style.cssText="position:fixed;right:14px;bottom:48px;z-index:9999;padding:7px 10px;border:1px solid #ddd7ca;border-radius:8px;background:#fffdf8;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.06)";
+    el.id="biuSyncState";
+    el.style.cssText="position:fixed;right:14px;bottom:14px;z-index:9999;padding:7px 10px;border:1px solid #ddd7ca;border-radius:8px;background:#fffdf8;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.06)";
     document.body.appendChild(el);
   }
   el.textContent=text;
   el.style.color=bad?"#b4482e":"#1b6b53";
 }
-function renderCloudRows(rows){
-  DATA=buildData(rows||[]);
-  __lastRecordsSignature=JSON.stringify((rows||[]).map(x=>[x.client_id,x.updated_at]));
-  cacheLocal();
-  renderAll();
-  setCloudReadStatus(`云端读取 ${(rows||[]).length} 笔`);
+
+function saveFallbackCache(){
+  try{
+    localStorage.setItem(LOCAL_CACHE_KEY,JSON.stringify({data:DATA,budget:BUDGET,savedAt:Date.now()}));
+  }catch(_){}
 }
-function allLocalRecords(){
-  return Object.values(DATA).flat().filter(Boolean);
-}
-function normalizeRecord(r){
-  if(!r.createdAt) r.createdAt=Date.now()+Math.floor(Math.random()*1000);
-  if(!r.time) r.time="00:00";
-  return r;
-}
-function cacheLocal(){
-  try{ localStorage.setItem(LOCAL_CACHE_KEY,JSON.stringify({data:DATA,budget:BUDGET,at:Date.now()})); }catch(_){}
-}
-function restoreLocalCache(){
+function restoreFallbackCache(){
   try{
     const x=JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY)||"null");
     if(!x) return false;
@@ -703,16 +687,11 @@ function restoreLocalCache(){
     return true;
   }catch(_){return false}
 }
-function rowToRecord(x){
-  return {
-    createdAt:Number(x.client_id),
-    amt:Number(x.amount||0),
-    cat:x.category||"其他",
-    pay:x.payment||"",
-    note:x.note||"",
-    date:x.expense_date||"",
-    time:(x.expense_time||"00:00").slice(0,5)
-  };
+
+function normalizeRecord(r){
+  if(!r.createdAt) r.createdAt=Date.now()+Math.floor(Math.random()*1000);
+  if(!r.time) r.time=__nowHHMM();
+  return r;
 }
 function recordToRow(r){
   normalizeRecord(r);
@@ -727,149 +706,176 @@ function recordToRow(r){
     updated_at:new Date().toISOString()
   };
 }
-function buildData(rows){
+function rowToRecord(x){
+  return {
+    createdAt:Number(x.client_id),
+    amt:Number(x.amount||0),
+    cat:x.category||"其他",
+    pay:x.payment||"",
+    note:x.note||"",
+    date:String(x.expense_date||""),
+    time:String(x.expense_time||"00:00").slice(0,5)
+  };
+}
+function rowsToData(rows){
   const next={};
-  rows.forEach(x=>{
-    const r=rowToRecord(x);
-    if(!r.date) return;
-    const m=r.date.slice(0,7);
-    (next[m]=next[m]||[]).push(r);
-  });
+  for(const row of rows){
+    const r=rowToRecord(row);
+    if(!r.date) continue;
+    const month=r.date.slice(0,7);
+    (next[month]=next[month]||[]).push(r);
+  }
+  for(const month of Object.keys(next)){
+    next[month].sort((a,b)=>
+      String(a.date+" "+a.time).localeCompare(String(b.date+" "+b.time)) ||
+      Number(a.createdAt)-Number(b.createdAt)
+    );
+  }
   return next;
 }
-async function api(path,opt={}){
-  const res=await fetch(SUPABASE_URL+"/rest/v1/"+path,{
-    cache:"no-store",
-    ...opt,
-    headers:supabaseHeaders({"Cache-Control":"no-cache",...(opt.headers||{})})
-  });
-  const raw=await res.text();
-  if(!res.ok) throw new Error(`${res.status}: ${raw}`);
-  return raw?JSON.parse(raw):null;
-}
-async function fetchRecords(){
+
+async function cloudFetch(path,opt={}){
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),8000);
+  const timeout=setTimeout(()=>controller.abort(),8000);
   try{
-    const url=`${SUPABASE_URL}/rest/v1/bookkeeping_records?select=client_id,amount,category,payment,note,expense_date,expense_time,updated_at&order=expense_date.asc,expense_time.asc,client_id.asc&_=${Date.now()}`;
-    const res=await fetch(url,{
-      method:"GET",cache:"no-store",mode:"cors",signal:controller.signal,
-      headers:supabaseHeaders({"Accept":"application/json","Cache-Control":"no-cache, no-store, max-age=0","Pragma":"no-cache"})
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
+      method:opt.method||"GET",
+      cache:"no-store",
+      mode:"cors",
+      signal:controller.signal,
+      headers:supabaseHeaders({
+        "Accept":"application/json",
+        "Cache-Control":"no-cache, no-store, max-age=0",
+        "Pragma":"no-cache",
+        ...(opt.headers||{})
+      }),
+      body:opt.body
     });
     const raw=await res.text();
-    if(!res.ok) throw new Error(`GET ${res.status}: ${raw}`);
-    const rows=raw?JSON.parse(raw):[];
-    if(!Array.isArray(rows)) throw new Error("云端返回格式不是数组");
-    return rows;
-  }finally{ clearTimeout(timer); }
+    if(!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
+    return raw ? JSON.parse(raw) : null;
+  }finally{
+    clearTimeout(timeout);
+  }
 }
-async function upsertRecord(r){
-  setSyncState("正在同步…");
-  const rows=await api("bookkeeping_records?on_conflict=client_id",{
-    method:"POST",
-    headers:{"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},
-    body:JSON.stringify(recordToRow(r))
-  });
-  if(!Array.isArray(rows)||!rows.length) throw new Error("云端未返回记录");
-  setSyncState("云端已同步");
+
+async function fetchAllRecords(){
+  return await cloudFetch(
+    `bookkeeping_records?select=client_id,amount,category,payment,note,expense_date,expense_time,updated_at&order=expense_date.asc,expense_time.asc,client_id.asc&_=${Date.now()}`
+  ) || [];
 }
-async function deleteCloudRecord(r){
-  if(!r?.createdAt) return;
-  setSyncState("正在同步…");
-  await api("bookkeeping_records?client_id=eq."+encodeURIComponent(String(r.createdAt)),{
-    method:"DELETE",headers:{"Prefer":"return=minimal"}
-  });
-  setSyncState("云端已同步");
-}
-async function saveBudgetCloud(){
-  await api("bookkeeping_state?on_conflict=id",{
-    method:"POST",
-    headers:{"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"},
-    body:JSON.stringify({id:1,budget_json:BUDGET,updated_at:new Date().toISOString()})
-  });
-}
-async function loadBudgetCloud(){
+
+async function fetchBudget(){
   try{
-    const rows=await api("bookkeeping_state?id=eq.1&select=budget_json");
+    const rows=await cloudFetch(`bookkeeping_state?id=eq.1&select=budget_json&_=${Date.now()}`);
     const b=rows?.[0]?.budget_json;
-    if(b&&typeof b==="object"){
+    if(b && typeof b==="object"){
       BUDGET={...DEFAULT_BUDGET,...b};
       BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     }
-  }catch(e){console.warn(e)}
-}
-
-/* 老 data_json 只在新表完全为空时迁移一次，避免旧云端数据丢失。 */
-async function migrateLegacyIfNeeded(){
-  const rows=await fetchRecords();
-  if(rows.length) return rows;
-  try{
-    const old=await api("bookkeeping_state?id=eq.1&select=data_json");
-    const obj=old?.[0]?.data_json;
-    const legacy=obj&&typeof obj==="object"?Object.values(obj).flat():[];
-    if(!legacy.length) return rows;
-    for(const oldr of legacy){
-      const r={...oldr};
-      normalizeRecord(r);
-      await upsertRecord(r);
-    }
-    return await fetchRecords();
-  }catch(e){console.warn("legacy migrate failed",e);return rows}
-}
-async function loadCloudState({silent=false}={}){
-  if(__syncBusy) return false;
-  __syncBusy=true;
-  setCloudReadStatus("正在读取云端…");
-  try{
-    const rows=await fetchRecords();
-    await loadBudgetCloud();
-    __cloudReady=true;
-    renderCloudRows(rows);
-    setSyncState("云端已同步");
-    return true;
   }catch(err){
-    console.error(err); __cloudReady=true;
-    setCloudReadStatus("云端读取失败："+String(err?.message||err),true);
-    if(!silent) setSyncState("云端读取失败",true);
-    return false;
-  }finally{__syncBusy=false}
-}
-
-/* 兼容原页面调用：新增/编辑后只 UPSERT 当前所有本机记录，不再整包覆盖云端。 */
-async function persistData(){
-  cacheLocal();
-  try{
-    const records=allLocalRecords();
-    for(const r of records) await upsertRecord(r);
-    cacheLocal();
-  }catch(err){
-    console.error(err); setSyncState("同步失败 · 已保存在本机",true);
+    console.warn("budget read failed",err);
   }
 }
-function queueCloudSave(){ cacheLocal(); saveBudgetCloud().then(()=>setSyncState("云端已同步")).catch(e=>{console.error(e);setSyncState("预算同步失败",true)}); }
 
-/* 跨设备只读取逐笔记录；不会用一台设备的整包 JSON 覆盖另一台。 */
-async function refreshCloudState(){
+async function refreshFromCloud(showState=true){
   if(__syncBusy) return false;
   __syncBusy=true;
+  if(showState) setSyncState("正在读取云端…");
   try{
-    const rows=await fetchRecords();
-    const sig=JSON.stringify(rows.map(x=>[x.client_id,x.updated_at]));
-    setCloudReadStatus(`云端读取 ${rows.length} 笔`);
-    if(sig!==__lastRecordsSignature){
-      renderCloudRows(rows);
-      setSyncState("云端已同步");
-    }
+    const rows=await fetchAllRecords();
+    DATA=rowsToData(rows);              // 关键：云端逐笔记录直接成为页面唯一账单源
+    await fetchBudget();
+    __cloudReady=true;
+    saveFallbackCache();
+    renderAll();                        // 关键：读取完成立即重绘 KPI / 图表 / 明细
+    setSyncState(`云端已同步 · ${rows.length}笔`);
     return true;
   }catch(err){
-    console.error(err);
-    setCloudReadStatus("云端读取失败："+String(err?.message||err),true);
+    console.error("cloud read failed",err);
+    __cloudReady=true;
+    setSyncState("云端读取失败 · 显示本机缓存",true);
     return false;
-  }finally{__syncBusy=false}
+  }finally{
+    __syncBusy=false;
+  }
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshCloudState()});
-window.addEventListener("focus",refreshCloudState);
-setInterval(()=>{if(document.visibilityState==="visible")refreshCloudState()},2000);
+
+async function upsertCloudRecord(r){
+  setSyncState("正在同步…");
+  const rows=await cloudFetch(`bookkeeping_records?on_conflict=client_id`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Prefer":"resolution=merge-duplicates,return=representation"
+    },
+    body:JSON.stringify(recordToRow(r))
+  });
+  if(!Array.isArray(rows)||!rows.length) throw new Error("云端未返回保存结果");
+  await refreshFromCloud(false);        // 写入成功后立刻重新以云端为准
+}
+
+async function deleteCloudRecord(r){
+  if(!r?.createdAt) return;
+  setSyncState("正在同步…");
+  await cloudFetch(`bookkeeping_records?client_id=eq.${encodeURIComponent(String(r.createdAt))}`,{
+    method:"DELETE",
+    headers:{"Prefer":"return=minimal"}
+  });
+  await refreshFromCloud(false);
+}
+
+async function saveBudgetCloud(){
+  await cloudFetch("bookkeeping_state?on_conflict=id",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Prefer":"resolution=merge-duplicates,return=minimal"
+    },
+    body:JSON.stringify({id:SUPABASE_ROW_ID,budget_json:BUDGET,updated_at:new Date().toISOString()})
+  });
+}
+
+async function persistData(){
+  // 原页面在新增/编辑后调用这里。找出当前页面记录并逐笔 UPSERT，
+  // 然后强制重新 GET 云端，确保电脑和手机最终看到同一份集合。
+  saveFallbackCache();
+  try{
+    const records=Object.values(DATA).flat().filter(Boolean);
+    for(const r of records) await upsertCloudRecord(r);
+    await refreshFromCloud(false);
+  }catch(err){
+    console.error("record sync failed",err);
+    setSyncState("同步失败 · 已保存在本机",true);
+  }
+}
+
+function queueCloudSave(){
+  saveFallbackCache();
+  clearTimeout(__refreshTimer);
+  __refreshTimer=setTimeout(async()=>{
+    try{
+      await saveBudgetCloud();
+      await refreshFromCloud(false);
+    }catch(err){
+      console.error("budget sync failed",err);
+      setSyncState("预算同步失败",true);
+    }
+  },80);
+}
+
+async function loadCloudState(){
+  return await refreshFromCloud(true);
+}
+
+/* 打开/回到页面立即读云端；前台每2秒刷新一次。 */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible") refreshFromCloud(false);
+});
+window.addEventListener("focus",()=>refreshFromCloud(false));
+setInterval(()=>{
+  if(document.visibilityState==="visible") refreshFromCloud(false);
+},2000);
 
 function showRuntimeMessage(msg){
   let n=document.getElementById("runtimeNotice");
@@ -1062,7 +1068,7 @@ function renderLedger(m){
     tr.appendChild(actionTd);
     const deleteTd = el("td","delete-cell"); deleteTd.style.textAlign="center";
     const btn = el("button","del-btn","✕"); btn.title="删除这笔记录";
-    btn.onclick = async ()=>{ const rm=r.date.slice(0,7); DATA[rm]=(DATA[rm]||[]).filter(x=>x!==r); cacheLocal(); renderAll(); try{ await deleteCloudRecord(r); }catch(e){ console.error(e); setSyncState("删除同步失败",true); } };
+    btn.onclick = async ()=>{ try{ await deleteCloudRecord(r); }catch(e){ console.error(e); setSyncState("删除同步失败",true); } };
     deleteTd.appendChild(btn); tr.appendChild(deleteTd);
     body.appendChild(tr);
   });
@@ -1483,12 +1489,12 @@ $("kpiBudgetSub").onclick=()=>{
 syncRangeUI();
 
 /* ============ 启动 ============ */
-restoreLocalCache();
+restoreFallbackCache();
 renderCatPicker();
 selectCat("餐饮");
 renderAll();
-setCloudReadStatus("正在读取云端…");
-setTimeout(()=>loadCloudState(),50);
+setSyncState("正在读取云端…");
+setTimeout(()=>refreshFromCloud(true),20);
 </script>
 
 <script id="ledger-align-insight-js">
