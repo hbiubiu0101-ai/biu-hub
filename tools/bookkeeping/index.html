@@ -655,6 +655,84 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 }
 </style>
 
+
+<style id="biu-layout-polish-v2">
+/* 消费明细：日期筛选整体居中，不因“全部”出现/消失而跳位 */
+.ledger-head{
+  position:relative;
+  min-height:50px;
+}
+.ledger-head-tools{
+  position:static !important;
+}
+.ledger-day-filter{
+  position:absolute !important;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  margin:0 !important;
+}
+.ledger-date-clear{
+  position:absolute !important;
+  left:calc(50% + 102px);
+  top:50%;
+  transform:translateY(-50%);
+  margin:0 !important;
+}
+.ledger-head-tools .hint{
+  margin-left:auto;
+}
+
+/* 智能洞察：加高、缩字、压缩卡片间距 */
+#insightPanel,
+.insight-panel{
+  min-height:430px !important;
+  height:auto !important;
+}
+#insightList{
+  padding:10px 14px 14px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:6px !important;
+  overflow:visible !important;
+  max-height:none !important;
+  height:auto !important;
+}
+#insightList .insight-result-card{
+  min-height:0 !important;
+  padding:9px 11px !important;
+  margin:0 !important;
+  gap:8px !important;
+  border-radius:8px !important;
+}
+#insightList .insight-result-card b{
+  font-size:12px !important;
+  line-height:1.35 !important;
+}
+#insightList .insight-result-card p{
+  margin:3px 0 0 !important;
+  font-size:10.5px !important;
+  line-height:1.35 !important;
+}
+#insightList .insight-result-dot{
+  width:7px !important;
+  height:7px !important;
+  flex:0 0 7px !important;
+  margin-top:4px !important;
+}
+@media (max-width:760px){
+  .ledger-head{padding-bottom:52px !important}
+  .ledger-day-filter{
+    top:auto !important; bottom:9px !important;
+  }
+  .ledger-date-clear{
+    top:auto !important; bottom:9px !important;
+    transform:none !important;
+  }
+  #insightPanel,.insight-panel{min-height:400px !important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
