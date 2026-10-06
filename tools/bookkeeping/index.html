@@ -570,13 +570,14 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 <style id="v38-category-color-unified">
 .donut-category-card{
-  background:color-mix(in srgb,var(--cat-color) 16%,white)!important;
-  border-color:color-mix(in srgb,var(--cat-color) 42%,white)!important;
+  background:var(--cat-soft)!important;
+  border-color:var(--cat-color)!important;
   color:#262B27!important;
 }
 .donut-category-card:hover{
-  background:color-mix(in srgb,var(--cat-color) 20%,white)!important;
+  background:var(--cat-soft)!important;
   border-color:var(--cat-color)!important;
+  box-shadow:0 2px 8px rgba(36,43,39,.08)!important;
 }
 .donut-category-card *{color:#262B27!important}
 .donut-card-top i{background:var(--cat-color)!important}
@@ -758,14 +759,14 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 <script>
 /* ============ 分类体系 ============ */
 const CATS = [
-  {key:"餐饮", color:"#C96F2B", soft:"#F7EADC", svg:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 11V8M12 11V7M16 11V8"/>'},
-  {key:"交通", color:"#3E6E8F", soft:"#E4EDF3", svg:'<rect x="3" y="4" width="18" height="14" rx="3"/><circle cx="8" cy="15.5" r="1.2"/><circle cx="16" cy="15.5" r="1.2"/><path d="M3 10h18"/>'},
-  {key:"购物", color:"#B4482E", soft:"#F6E4DE", svg:'<path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'},
-  {key:"居住", color:"#1B6B53", soft:"#E3EFEA", svg:'<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/>'},
-  {key:"娱乐", color:"#8A5A9E", soft:"#EFE7F4", svg:'<rect x="2.5" y="7" width="19" height="10" rx="4"/><path d="M7 11v4M5 13h4M16 12h.01M18 14h.01"/>'},
-  {key:"医疗", color:"#D05A6E", soft:"#F9E9EC", svg:'<rect x="9" y="4" width="6" height="16" rx="1"/><rect x="4" y="9" width="16" height="6" rx="1"/>'},
-  {key:"教育", color:"#5A7D3E", soft:"#EBF1E4", svg:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v17H6.5A2.5 2.5 0 0 0 4 22.5v-17z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v17h5.5a2.5 2.5 0 0 1 2.5 2.5v-17z"/>'},
-  {key:"其他", color:"#7A8280", soft:"#ECEFF0", svg:'<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>'}
+  {key:"餐饮", color:"#E07A2D", soft:"#FBE9D9", svg:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 11V8M12 11V7M16 11V8"/>'},
+  {key:"交通", color:"#3478B8", soft:"#E2EEF9", svg:'<rect x="3" y="4" width="18" height="14" rx="3"/><circle cx="8" cy="15.5" r="1.2"/><circle cx="16" cy="15.5" r="1.2"/><path d="M3 10h18"/>'},
+  {key:"购物", color:"#D84A3A", soft:"#F9E1DE", svg:'<path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'},
+  {key:"居住", color:"#159A8C", soft:"#DDF3EF", svg:'<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/>'},
+  {key:"娱乐", color:"#8B5CC7", soft:"#EEE5F8", svg:'<rect x="2.5" y="7" width="19" height="10" rx="4"/><path d="M7 11v4M5 13h4M16 12h.01M18 14h.01"/>'},
+  {key:"医疗", color:"#E05A8D", soft:"#F9E3EC", svg:'<rect x="9" y="4" width="6" height="16" rx="1"/><rect x="4" y="9" width="16" height="6" rx="1"/>'},
+  {key:"教育", color:"#6FAE3F", soft:"#EAF3DD", svg:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v17H6.5A2.5 2.5 0 0 0 4 22.5v-17z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v17h5.5a2.5 2.5 0 0 1 2.5 2.5v-17z"/>'},
+  {key:"其他", color:"#6F7B86", soft:"#E8ECEF", svg:'<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>'}
 ];
 const catOf = k => CATS.find(c=>c.key===k) || CATS[CATS.length-1];
 
@@ -1160,7 +1161,7 @@ function renderDonut(m){
   const legend=by.map(x=>{
     const pct=x.amt/total*100;
     const pctText=(pct>0 && pct<0.1) ? pct.toFixed(2) : pct.toFixed(1);
-    return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-category-card" style="--cat-color:${x.color}">
+    return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-category-card" style="--cat-color:${x.color};--cat-soft:${catOf(x.key).soft}">
       <span class="donut-card-top"><i style="background:${x.color}"></i><b>${escHtml(x.key)}</b><strong>${money0(x.amt)}</strong></span>
       <span class="donut-card-percent">${pctText}%</span>
     </button>`;
