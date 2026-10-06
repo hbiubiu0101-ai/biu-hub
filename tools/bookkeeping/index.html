@@ -761,13 +761,13 @@ async function cloudFetch(path,opt={}){
 
 async function fetchAllRecords(){
   return await cloudFetch(
-    `bookkeeping_records?select=client_id,amount,category,payment,note,expense_date,expense_time,updated_at&order=expense_date.asc,expense_time.asc,client_id.asc&_=${Date.now()}`
+    `bookkeeping_records?select=client_id,amount,category,payment,note,expense_date,expense_time,updated_at&order=expense_date.asc,expense_time.asc,client_id.asc`
   ) || [];
 }
 
 async function fetchBudget(){
   try{
-    const rows=await cloudFetch(`bookkeeping_state?id=eq.1&select=budget_json&_=${Date.now()}`);
+    const rows=await cloudFetch(`bookkeeping_state?id=eq.1&select=budget_json`);
     const b=rows?.[0]?.budget_json;
     if(b && typeof b==="object"){
       BUDGET={...DEFAULT_BUDGET,...b};
