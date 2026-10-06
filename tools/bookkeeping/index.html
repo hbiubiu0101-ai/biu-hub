@@ -1091,14 +1091,41 @@ function renderDonut(m){
           labelItems.push({pct,angle,x1,y1,right:Math.cos(angle)>=0});
           return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
         }).join("");
-        const guides=labelItems.map(v=>{
-          const side=v.right?1:-1;
-          const x2=cx+Math.cos(v.angle)*76;
-          const y2=cy+Math.sin(v.angle)*76;
-          const x3=x2+side*10;
-          const y3=y2;
-          const tx=x3+side*2;
-          return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} L ${x3.toFixed(1)} ${y3.toFixed(1)}" class="donut-guide"></path><text x="${tx.toFixed(1)}" y="${y3.toFixed(1)}" class="donut-pct-out" text-anchor="${side>0?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
+        // 百分比标签自动避让：
+        // 先按左右两侧拆分，再按原始Y从上到下排序；
+        // 相邻标签至少保持固定距离，小扇区会自动一高一低、一左一右分散。
+        const layoutSide=(arr,right)=>{
+          arr.sort((a,b)=>a.y1-b.y1);
+          const minGap=14, top=8, bottom=132;
+          let prev=top-minGap;
+          arr.forEach(v=>{
+            const naturalY=cy+Math.sin(v.angle)*78;
+            v.labelY=Math.max(naturalY,prev+minGap);
+            prev=v.labelY;
+          });
+          if(arr.length && arr[arr.length-1].labelY>bottom){
+            const shift=arr[arr.length-1].labelY-bottom;
+            arr.forEach(v=>v.labelY-=shift);
+          }
+          for(let i=arr.length-2;i>=0;i--){
+            if(arr[i+1].labelY-arr[i].labelY<minGap)
+              arr[i].labelY=arr[i+1].labelY-minGap;
+          }
+          arr.forEach((v,i)=>{
+            // 顶部密集小扇区额外交错横向距离，避免文字叠在一起
+            const dense=Math.abs(v.y1-cy)>42;
+            v.side=right?1:-1;
+            v.elbowX=cx+v.side*(dense ? 76+(i%2)*9 : 74);
+            v.endX=v.elbowX+v.side*(12+(i%2)*5);
+            v.textX=v.endX+v.side*3;
+          });
+        };
+        const left=labelItems.filter(v=>!v.right);
+        const right=labelItems.filter(v=>v.right);
+        layoutSide(left,false);
+        layoutSide(right,true);
+        const guides=[...left,...right].map(v=>{
+          return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${v.elbowX.toFixed(1)} ${v.labelY.toFixed(1)} L ${v.endX.toFixed(1)} ${v.labelY.toFixed(1)}" class="donut-guide"></path><text x="${v.textX.toFixed(1)}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" text-anchor="${v.side>0?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
         }).join("");
         return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}${guides}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
       })()}</div>
