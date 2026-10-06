@@ -544,6 +544,18 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
   .donut-layout-clean .donut-svg-wrap{width:190px!important;height:190px!important;flex-basis:190px!important}
 }
 </style>
+
+<style id="v36-category-card-date-fix">
+.donut-category-card{
+  background:color-mix(in srgb,var(--cat-color) 11%,white)!important;
+  border-color:color-mix(in srgb,var(--cat-color) 22%,#E4DED2)!important;
+  color:#262B27!important;
+}
+.donut-category-card *{color:#262B27!important}
+.donut-card-top{display:grid!important;grid-template-columns:8px auto 1fr!important;align-items:center!important;gap:6px!important}
+.donut-card-top strong{justify-self:end!important;color:#262B27!important;font-weight:600!important}
+.donut-card-percent{display:block!important;margin-top:5px!important;padding-left:14px!important;font-size:11px!important;line-height:1.2!important;font-weight:700!important;color:#262B27!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1124,8 +1136,8 @@ function renderDonut(m){
     const pct=x.amt/total*100;
     const pctText=(pct>0 && pct<0.1) ? pct.toFixed(2) : pct.toFixed(1);
     return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-category-card" style="--cat-color:${x.color}">
-      <span class="donut-card-top"><i style="background:${x.color}"></i><b>${escHtml(x.key)}</b><strong>${pctText}%</strong></span>
-      <span class="donut-card-amount">${money0(x.amt)}</span>
+      <span class="donut-card-top"><i style="background:${x.color}"></i><b>${escHtml(x.key)}</b><strong>${money0(x.amt)}</strong></span>
+      <span class="donut-card-percent">${pctText}%</span>
     </button>`;
   }).join("");
 
@@ -1707,5 +1719,30 @@ document.addEventListener("DOMContentLoaded",function(){
 });
 </script>
 
+
+<script id="v36-latest-date-default">
+(function(){
+  function localToday(){
+    const d=new Date();
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,"0");
+    const day=String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  function setLatestExpenseDate(){
+    const el=document.querySelector('input[type="date"]');
+    if(!el) return;
+    // 每次重新打开/刷新页面，右侧记一笔日期默认回到本机“今天”。
+    el.value=localToday();
+    el.defaultValue=localToday();
+  }
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>setTimeout(setLatestExpenseDate,0));
+  }else{
+    setTimeout(setLatestExpenseDate,0);
+  }
+  window.addEventListener("pageshow",setLatestExpenseDate);
+})();
+</script>
 </body>
 </html>
