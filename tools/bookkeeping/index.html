@@ -467,9 +467,9 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 <style>
 /* V2.5 按标注调整 */
-#trendChart svg text{font-size:13px!important;font-weight:500!important}
+#trendChart svg text{font-size:16px!important;font-weight:600!important}
 #trendChart svg text.bar-value,
-#trendChart svg .bar-value{font-size:13px!important;font-weight:700!important}
+#trendChart svg .bar-value{font-size:16px!important;font-weight:700!important}
 .donut-svg-wrap{width:156px;height:156px}
 .donut-svg-wrap svg{width:100%;height:100%;overflow:visible}
 .donut-pct{font-size:8px;font-weight:700;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.18);stroke-width:.8px}
@@ -487,11 +487,16 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
   font-size:11px!important;gap:5px!important;min-width:0;
 }
 @media(max-width:760px){
-  #trendChart svg text{font-size:13px!important}
+  #trendChart svg text{font-size:16px!important}
   .donut-legend-horizontal{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 </style>
 
+
+<style>
+.donut-pct-out{font-size:8px;font-weight:700;fill:#4f5752}
+.donut-guide{stroke:#9aa19a;stroke-width:.75;fill:none}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1081,9 +1086,18 @@ function renderDonut(m){
           const start=acc; acc+=pct;
           const mid=start+pct/2;
           const angle=mid*2*Math.PI-Math.PI/2;
-          const tx=cx+Math.cos(angle)*r, ty=cy+Math.sin(angle)*r;
-          const label=pct>=0.035 ? `${(pct*100).toFixed(1)}%` : "";
-          return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>${label?`<text x="${tx}" y="${ty}" class="donut-pct" text-anchor="middle" dominant-baseline="middle">${label}</text>`:""}`;
+          const label=pct>=0.01 ? `${(pct*100).toFixed(1)}%` : "";
+          let guide="";
+          if(label){
+            const x1=cx+Math.cos(angle)*66, y1=cy+Math.sin(angle)*66;
+            const x2=cx+Math.cos(angle)*76, y2=cy+Math.sin(angle)*76;
+            const right=Math.cos(angle)>=0;
+            const x3=x2+(right?11:-11);
+            const anchor=right?"start":"end";
+            const tx=x3+(right?2:-2);
+            guide=`<path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} L ${x3.toFixed(1)} ${y2.toFixed(1)}" class="donut-guide"></path><text x="${tx.toFixed(1)}" y="${y2.toFixed(1)}" class="donut-pct-out" text-anchor="${anchor}" dominant-baseline="middle">${label}</text>`;
+          }
+          return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>${guide}`;
         }).join("");
         return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
       })()}</div>
@@ -1535,6 +1549,8 @@ document.querySelectorAll("[data-charttab]").forEach(b=>{
     state.chartTab = b.dataset.charttab;
     renderCharts(state.month);
   };
+
+  renderInsights(state.month);
 });
 
 
