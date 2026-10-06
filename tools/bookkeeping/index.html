@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>消费智记 · 智能消费统计工作台</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B6B53'/%3E%3Cpath d='M8 16.5h4l2.5-5 3.5 9 2.8-6h4' stroke='%23F7F5EF' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://miaoda.feishu.cn">
-<link href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 /* ============ 设计令牌 ============ */
 :root{
@@ -397,6 +395,19 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ledger-fixed-card table.ledger th:nth-child(6),
 .ledger-fixed-card table.ledger td:nth-child(6){width:9%!important}
 </style>
+
+<style id="final-stability-css">
+#trendChart,#catChart{min-height:280px}
+@media(max-width:980px){
+  #trendChart,#catChart{min-height:250px}
+}
+@media(max-width:640px){
+  #trendChart,#catChart{min-height:230px}
+  .ledger-fixed-card{overflow:hidden}
+  .ledger-fixed-card .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -570,7 +581,6 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 </div>
 
 <!-- something todo: echarts + app js -->
-<script src="assets/echarts.min.js" onerror="window.__chartFail=1"></script>
 <script src="assets/tesseract.min.js" onerror="window.__ocrFail=1"></script>
 <script>
 /* ============ 分类体系 ============ */
@@ -597,14 +607,15 @@ function persistBudget(){
 
 /* ============ 数据 ============
    V2 开始不再内置任何演示账单。
-   当前版本使用 Supabase 云端存储，手机与电脑共用同一份数据。
+   当前阶段仍使用浏览器本地存储；下一阶段切换 Cloudflare D1。
    使用新的存储键，避免旧版本 mock 数据继续出现在手机/电脑。
 ================================================ */
 let DATA = {};
 let __cloudSaveTimer = null;
 let __cloudReady = false;
+let __cloudSaving = false;
+let __cloudSaveAgain = false;
 
-/* Supabase：GitHub Pages 与手机/电脑共用同一份账本 */
 const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
 const SUPABASE_ROW_ID = 1;
@@ -616,19 +627,17 @@ function supabaseHeaders(extra={}){
     ...extra
   };
 }
-
 async function loadCloudState(){
   try{
-    const url = `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=data_json,budget_json`;
-    const res = await fetch(url, {
-      cache:"no-store",
-      headers:supabaseHeaders()
-    });
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=data_json,budget_json,updated_at`,
+      {cache:"no-store", headers:supabaseHeaders()}
+    );
     if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
     const rows = await res.json();
-    const cloud = rows && rows[0] ? rows[0] : {};
-    DATA = cloud.data_json && typeof cloud.data_json === "object" ? cloud.data_json : {};
-    BUDGET = cloud.budget_json && typeof cloud.budget_json === "object"
+    const cloud = rows?.[0] || {};
+    DATA = cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
+    BUDGET = cloud.budget_json && typeof cloud.budget_json==="object"
       ? {...DEFAULT_BUDGET, ...cloud.budget_json}
       : {...DEFAULT_BUDGET};
     BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
@@ -641,36 +650,56 @@ async function loadCloudState(){
     BUDGET = {...DEFAULT_BUDGET};
     BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
     renderAll();
+    showRuntimeMessage("云端数据读取失败，请检查网络后刷新；页面仍可打开。");
   }
 }
-
 async function saveCloudState(){
   if(!__cloudReady) return;
+  if(__cloudSaving){ __cloudSaveAgain = true; return; }
+  __cloudSaving = true;
   try{
-    const url = `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}`;
-    const res = await fetch(url, {
-      method:"PATCH",
-      headers:supabaseHeaders({
-        "Content-Type":"application/json",
-        "Prefer":"return=minimal"
-      }),
-      body:JSON.stringify({
-        data_json:DATA,
-        budget_json:BUDGET,
-        updated_at:new Date().toISOString()
-      })
-    });
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}`,
+      {
+        method:"PATCH",
+        headers:supabaseHeaders({"Content-Type":"application/json","Prefer":"return=minimal"}),
+        body:JSON.stringify({
+          data_json:DATA,
+          budget_json:BUDGET,
+          updated_at:new Date().toISOString()
+        })
+      }
+    );
     if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
   }catch(err){
     console.error("Supabase save failed:", err);
+    showRuntimeMessage("这次云端保存失败，请检查网络后再试。");
+  }finally{
+    __cloudSaving = false;
+    if(__cloudSaveAgain){
+      __cloudSaveAgain = false;
+      saveCloudState();
+    }
   }
 }
-
 function queueCloudSave(){
   clearTimeout(__cloudSaveTimer);
-  __cloudSaveTimer = setTimeout(saveCloudState, 180);
+  __cloudSaveTimer = setTimeout(saveCloudState, 220);
 }
 function persistData(){ queueCloudSave(); }
+
+function showRuntimeMessage(msg){
+  let n=document.getElementById("runtimeNotice");
+  if(!n){
+    n=document.createElement("div");
+    n.id="runtimeNotice";
+    n.style.cssText="position:fixed;left:16px;right:16px;bottom:14px;z-index:9999;padding:10px 14px;border:1px solid #E8C8B9;border-radius:8px;background:#FFF5F1;color:#A5422B;font-size:12px;box-shadow:0 4px 18px rgba(0,0,0,.08)";
+    document.body.appendChild(n);
+  }
+  n.textContent=msg;
+  clearTimeout(n.__t);
+  n.__t=setTimeout(()=>n.remove(),4200);
+}
 
 /* ============ 状态 ============ */
 const __now = new Date();
@@ -729,33 +758,7 @@ function renderKPI(m){
   $("kpiBudgetSub").textContent = "本月预算 " + money0(BUDGET_TOTAL) + "";
 }
 
-/* ============ 图表 ============ */
-let trendChart, catChart;
-const chartBase = {
-  grid:{left:10,right:12,top:28,bottom:4,containLabel:true},
-  textStyle:{fontFamily:"Noto Sans SC,sans-serif",fontSize:12,color:"#5C645E"},
-  color:["#1B6B53","#E4E0D4"]
-};
-function initCharts(){
-  if(!window.echarts) return false;
-  const trendEl = $("trendChart"), catEl = $("catChart");
-  if(!trendEl || !catEl) return false;
-  try{
-    trendChart = echarts.getInstanceByDom(trendEl) || echarts.init(trendEl);
-    catChart = echarts.getInstanceByDom(catEl) || echarts.init(catEl);
-    if(!window.__biuChartResizeBound){
-      window.__biuChartResizeBound = true;
-      window.addEventListener("resize", ()=>{
-        try{ if(trendChart) trendChart.resize(); }catch(e){}
-        try{ if(catChart) catChart.resize(); }catch(e){}
-      });
-    }
-    return true;
-  }catch(e){
-    console.error("Chart init failed:", e);
-    return false;
-  }
-}
+/* ============ 图表：原生 SVG/CSS，无外部图表依赖 ============ */
 function last6Months(m){
   const arr=[]; let cur=m;
   for(let i=0;i<6;i++){ arr.unshift(cur); cur=prevMonth(cur); }
@@ -770,140 +773,81 @@ function monthsBetween(start,end){
 function activeRangeMonths(m){
   if(state.range==="1y"){const arr=[];let cur=m;for(let i=0;i<12;i++){arr.unshift(cur);cur=prevMonth(cur);}return arr;}
   if(state.range==="custom" && state.rangeStart && state.rangeEnd) return monthsBetween(state.rangeStart,state.rangeEnd);
-  return (()=>{
-    const [yy,mm]=m.split("-").map(Number);
-    const arr=[];
-    for(let offset=-2;offset<=3;offset++){
-      const d=new Date(yy,mm-1+offset,1);
-      arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
-    }
-    return (()=>{
-    /* 最新月份：默认放最右；历史选择月份：左2右3 */
-    if(m===state.latestMonth) return last6Months(m);
-    const [yy,mm]=m.split("-").map(Number);
-    const arr=[];
-    for(let offset=-2;offset<=3;offset++){
-      const d=new Date(yy,mm-1+offset,1);
-      arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
-    }
-    return arr;
-  })();
-  })();
+  if(m===state.latestMonth) return last6Months(m);
+  const [yy,mm]=m.split("-").map(Number), arr=[];
+  for(let offset=-2;offset<=3;offset++){
+    const d=new Date(yy,mm-1+offset,1);
+    arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+  }
+  return arr;
 }
 function rangeRecords(m){
   if(state.range==="6m") return monthRecords(m);
-  if(state.range==="1y"){return activeRangeMonths(m).flatMap(x=>monthRecords(x));}
-  if(state.range==="custom" && state.rangeStart && state.rangeEnd){return Object.values(DATA).flat().filter(r=>r.date>=state.rangeStart && r.date<=state.rangeEnd);}
+  if(state.range==="1y") return activeRangeMonths(m).flatMap(x=>monthRecords(x));
+  if(state.range==="custom" && state.rangeStart && state.rangeEnd)
+    return Object.values(DATA).flat().filter(r=>r.date>=state.rangeStart && r.date<=state.rangeEnd);
   return monthRecords(m);
 }
+function catSummary(m){
+  const map={};
+  (state.range==="6m"?monthRecords(m):rangeRecords(m)).forEach(r=>{map[r.cat]=(map[r.cat]||0)+Number(r.amt||0);});
+  return Object.keys(map).map(k=>({key:k,amt:map[k],color:catOf(k).color}));
+}
+function escHtml(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 function renderTrend(m){
-  const ms = activeRangeMonths(m);
-  const vals = ms.map(x=>monthTotal(x));
-  const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
-  if(trendChart) trendChart.setOption({
-    title:{text:state.range==="1y"?"一年支出":(state.range==="custom"?"自选时间支出":"近 6 个月支出"), left:0, top:0, textStyle:{fontSize:13,fontWeight:700,color:"#262B27"}},
-    tooltip:{trigger:"axis", formatter:p=>{const i=p[0].dataIndex; return `${ms[i].slice(0,4)}年${Number(ms[i].slice(5))}月<br><b style="color:#1B6B53">${money(vals[i])}</b>`;}},
-    xAxis:{type:"category", data:ms.map(x=>Number(x.slice(5))+"月"), axisLine:{lineStyle:{color:"#D5CFBF"}}, axisTick:{show:false}},
-    yAxis:{type:"value", axisLabel:{formatter:v=>"¥"+v}, splitLine:{lineStyle:{color:"#EFECE3"}}},
-    series:[
-      {type:"bar", data:vals, barWidth:"46%", itemStyle:{color:p=>ms[p.dataIndex]===m?"#1B6B53":"#C9D8D2", borderRadius:[4,4,0,0]}, label:{show:true, position:"top", formatter:p=>money0(p.value), fontSize:10.5, color:"#5C645E"}},
-      {type:"line", data:vals.map(()=>avg), symbol:"none", lineStyle:{type:"dashed", color:"#B4482E", width:1.5}, label:{show:false}}
-    ]
-  }, true);
-  trendChart.off("click");
-  trendChart.on("click", p=>{ if(p.componentType!=="series" || p.seriesType!=="bar") return; const target=ms[p.dataIndex]; if(target){state.month=target; state.range="6m"; syncRangeUI(); renderAll();} });
+  const box=$("trendChart"); if(!box) return;
+  const ms=activeRangeMonths(m), vals=ms.map(x=>monthTotal(x));
+  const max=Math.max(1,...vals), W=760,H=260,padL=54,padR=18,padT=38,padB=42;
+  const plotW=W-padL-padR, plotH=H-padT-padB, step=plotW/Math.max(1,ms.length), bw=Math.min(54,step*.5);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" role="img" aria-label="支出趋势">`;
+  for(let i=0;i<=4;i++){
+    const y=padT+plotH*i/4, val=max*(1-i/4);
+    svg+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#EFECE3"/><text x="${padL-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#8A918C">¥${Math.round(val)}</text>`;
+  }
+  ms.forEach((mon,i)=>{
+    const v=vals[i], h=plotH*v/max, x=padL+step*i+(step-bw)/2, y=padT+plotH-h;
+    const fill=mon===m?"#1B6B53":"#C9D8D2";
+    svg+=`<g class="native-bar" data-month="${mon}" style="cursor:pointer"><rect x="${x}" y="${y}" width="${bw}" height="${Math.max(1,h)}" rx="4" fill="${fill}"/><text x="${x+bw/2}" y="${Math.max(14,y-7)}" text-anchor="middle" font-size="10" fill="#5C645E">¥${Math.round(v)}</text><text x="${x+bw/2}" y="${H-15}" text-anchor="middle" font-size="11" fill="#5C645E">${Number(mon.slice(5))}月</text></g>`;
+  });
+  svg+="</svg>";
+  box.innerHTML=`<div style="font-size:13px;font-weight:700;margin:0 0 4px;color:#262B27">${state.range==="1y"?"一年支出":state.range==="custom"?"自选时间支出":"近 6 个月支出"}</div><div style="height:calc(100% - 24px);min-height:220px">${svg}</div>`;
+  box.querySelectorAll(".native-bar").forEach(g=>g.onclick=()=>{
+    state.month=g.dataset.month; state.range="6m"; syncRangeUI(); renderAll();
+  });
 }
 function renderCatBar(m){
-  const by = catSummary(m);
-  const sorted = [...by].sort((a,b)=>b.amt-a.amt);
-  if(catChart) catChart.setOption({
-    title:{text:"分类支出排序", left:0, top:0, textStyle:{fontSize:13,fontWeight:700,color:"#262B27"}},
-    tooltip:{trigger:"axis", axisPointer:{type:"shadow"}, formatter:p=>{const d=p[0]; return `${d.name}<br><b style="color:${d.color}">${money(d.value)}</b>`;}},
-    grid:{left:10,right:30,top:28,bottom:4,containLabel:true},
-    xAxis:{type:"value", axisLabel:{formatter:"¥"}, splitLine:{lineStyle:{color:"#EFECE3"}}},
-    yAxis:{type:"category", data:sorted.map(x=>x.key), axisLine:{lineStyle:{color:"#D5CFBF"}}, axisTick:{show:false}},
-    series:[{type:"bar", data:sorted.map(x=>({value:x.amt, itemStyle:{color:x.color, borderRadius:[0,4,4,0]}})), barWidth:"58%", label:{show:true, position:"right", formatter:p=>money0(p.value), fontSize:10.5, color:"#5C645E"}}]
-  }, true);
+  const box=$("trendChart"); if(!box) return;
+  const rows=catSummary(m).sort((a,b)=>b.amt-a.amt), max=Math.max(1,...rows.map(x=>x.amt));
+  if(!rows.length){
+    box.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:18px">分类支出排序</div><div style="height:210px;display:grid;place-items:center;color:#9AA19A">暂无消费数据</div>';
+    return;
+  }
+  box.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:14px">分类支出排序</div>`+
+    rows.map(x=>`<div style="display:grid;grid-template-columns:48px 1fr 78px;gap:10px;align-items:center;margin:12px 0;font-size:12px"><span>${escHtml(x.key)}</span><div style="height:14px;background:#F1EFE8;border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${Math.max(2,x.amt/max*100)}%;background:${x.color};border-radius:4px"></i></div><b class="num" style="text-align:right">${money0(x.amt)}</b></div>`).join("");
 }
 function renderDonut(m){
-  const by = catSummary(m).sort((a,b)=>b.amt-a.amt);
-  const isMobile = window.innerWidth < 640;
-  const hasData = by.length > 0;
-
-  if(catChart) catChart.setOption({
-    title:{text:"本月分类占比", left:0, top:2, textStyle:{fontSize:13,fontWeight:700,color:"#262B27"}},
-    tooltip: hasData ? {
-      trigger:"item",
-      formatter:p=>`${p.name}<br><b style="color:${p.color}">${money(p.value)}</b>（${p.percent}%）`
-    } : {show:false},
-    legend: hasData ? {
-      bottom:0,
-      type:isMobile ? "scroll" : "plain",
-      icon:"circle",
-      itemWidth:8,
-      itemHeight:8,
-      itemGap:isMobile ? 8 : 14,
-      textStyle:{fontSize:isMobile ? 10 : 11,color:"#5C645E"},
-      formatter:function(name){
-        const hit=by.find(x=>x.key===name);
-        const amount=hit ? Number(hit.amt||0) : 0;
-        return name+"  ¥"+amount.toLocaleString("zh-CN",{maximumFractionDigits:2});
-      }
-    } : {show:false},
-    graphic: hasData ? [] : [{
-      type:"text",
-      left:"center",
-      top:"46%",
-      silent:true,
-      style:{
-        text:"¥0",
-        fill:"#5C645E",
-        fontSize:isMobile ? 20 : 22,
-        fontWeight:700,
-        textAlign:"center"
-      }
-    }],
-    series:[{
-      type:"pie",
-      radius:["52%","72%"],
-      center:["50%", hasData ? "47%" : "50%"],
-      avoidLabelOverlap:true,
-      silent:!hasData,
-      itemStyle:{borderColor:"#fff",borderWidth:2,borderRadius:3},
-      label:{
-        show:hasData && !isMobile,
-        formatter:"{d}%",
-        fontSize:11,
-        color:"#5C645E"
-      },
-      labelLine:{show:hasData && !isMobile},
-      emphasis:{scaleSize:4},
-      data: hasData
-        ? by.map(x=>({name:x.key, value:x.amt, itemStyle:{color:x.color}}))
-        : [{name:"", value:1, itemStyle:{color:"#E4E0D4"}}]
-    }]
-  }, true);
-
-  catChart.off("click");
-  if(hasData){
-    catChart.on("click", p=>{
-      if(!p.name) return;
-      state.catFilter = state.catFilter===p.name ? null : p.name;
-      renderLedger(state.month);
-      renderDonut(m);
-    });
+  const box=$("catChart"); if(!box) return;
+  const by=catSummary(m).sort((a,b)=>b.amt-a.amt), total=by.reduce((a,b)=>a+b.amt,0);
+  if(!total){
+    box.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:12px">本月分类占比</div><div style="height:180px;display:grid;place-items:center"><div style="width:132px;height:132px;border-radius:50%;background:conic-gradient(#E4E0D4 0 100%);display:grid;place-items:center"><div style="width:76px;height:76px;border-radius:50%;background:white;display:grid;place-items:center;font-weight:700;color:#5C645E">¥0</div></div></div>`;
+    return;
   }
-}
-function catSummary(m){
-  const map={}; (state.range==="6m"?monthRecords(m):rangeRecords(m)).forEach(r=>{map[r.cat]=(map[r.cat]||0)+r.amt;});
-  return Object.keys(map).map(k=>({key:k, amt:map[k], color:catOf(k).color}));
+  let deg=0, stops=[];
+  by.forEach(x=>{const a=deg,b=deg+x.amt/total*360;stops.push(`${x.color} ${a}deg ${b}deg`);deg=b;});
+  const legend=by.map(x=>`<button type="button" data-cat="${escHtml(x.key)}" style="border:0;background:transparent;display:flex;align-items:center;gap:6px;padding:4px 0;color:#5C645E;font:inherit;font-size:11px;cursor:pointer"><i style="width:8px;height:8px;border-radius:50%;background:${x.color};flex:none"></i><span>${escHtml(x.key)} ${money(x.amt)}</span></button>`).join("");
+  box.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:8px">本月分类占比</div><div style="display:flex;align-items:center;justify-content:center;gap:24px;min-height:210px;flex-wrap:wrap"><div style="width:150px;height:150px;border-radius:50%;background:conic-gradient(${stops.join(",")});display:grid;place-items:center"><div style="width:86px;height:86px;border-radius:50%;background:white;display:grid;place-items:center;text-align:center"><div><b style="display:block;font-size:16px">${money0(total)}</b><span style="font-size:10px;color:#9AA19A">总支出</span></div></div></div><div style="min-width:135px">${legend}</div></div>`;
+  box.querySelectorAll("button[data-cat]").forEach(b=>b.onclick=()=>{
+    state.catFilter=state.catFilter===b.dataset.cat?null:b.dataset.cat;
+    renderLedger(state.month); renderDonut(m);
+  });
 }
 function renderCharts(m){
-  if(!window.echarts || !trendChart || !catChart) return;
-  if(state.chartTab==="trend"){ renderTrend(m); renderDonut(m); }
-  else{ renderCatBar(m); renderDonut(m); }
+  if(state.chartTab==="trend") renderTrend(m);
+  else renderCatBar(m);
+  renderDonut(m);
 }
-
 /* ============ 明细 ============ */
 function renderLedger(m){
   const recs = rangeRecords(m);
@@ -928,6 +872,10 @@ function renderLedger(m){
     const dtText = r.date.slice(5) + (r.time ? " " + r.time : "");
     tr.appendChild(el("td", "datetime num", dtText));
     const actionTd = el("td","edit-cell"); actionTd.style.textAlign="center";
+    const editBtn = el("button","ledger-edit-btn","编辑");
+    editBtn.type="button";
+    editBtn.onclick = ()=>beginEditRecord(r);
+    actionTd.appendChild(editBtn);
     tr.appendChild(actionTd);
     const deleteTd = el("td","delete-cell"); deleteTd.style.textAlign="center";
     const btn = el("button","del-btn","✕"); btn.title="删除这笔记录";
@@ -1258,13 +1206,48 @@ function defaultDate(m){
   if(m===CUR) return today.toISOString().slice(0,10);
   return m+"-01";
 }
+let editingRecord = null;
+function beginEditRecord(r){
+  editingRecord = r;
+  $("fAmount").value = r.amt ?? "";
+  $("fDate").value = r.date || defaultDate(state.month);
+  $("fPay").value = r.pay || "微信";
+  $("fNote").value = r.note || "";
+  selectCat(r.cat || "其他");
+  $("editingNote")?.classList.add("show");
+  $("saveBtn").textContent = "保存修改";
+  $("fAmount").focus();
+}
+function cancelRecordEdit(){
+  editingRecord = null;
+  $("editingNote")?.classList.remove("show");
+  $("saveBtn").textContent = "保存这笔消费";
+  $("fAmount").value = "";
+  $("fNote").value = "";
+  $("fDate").value = defaultDate(state.month);
+}
 function saveRecord(){
   const amt = parseFloat($("fAmount").value);
   if(!amt || amt<=0){ $("fAmount").focus(); flashSave("请输入有效金额", true); return; }
   const date = $("fDate").value || defaultDate(state.month);
   if(!date.startsWith(state.month)){ flashSave("日期需在当前查看的月份内", true); return; }
+  if(editingRecord){
+    const oldMonth = (editingRecord.date||date).slice(0,7);
+    const newMonth = date.slice(0,7);
+    const updated = {...editingRecord, date, cat:pickedCat, note:$("fNote").value.trim(), amt:Math.round(amt*100)/100, pay:$("fPay").value};
+    DATA[oldMonth] = (DATA[oldMonth]||[]).filter(x=>x!==editingRecord);
+    (DATA[newMonth] = DATA[newMonth]||[]).push(updated);
+    editingRecord = null;
+    $("editingNote")?.classList.remove("show");
+    persistData();
+    $("fAmount").value=""; $("fNote").value="";
+    renderAll();
+    flashSave("已保存修改");
+    return;
+  }
   const rec = {date, time:__nowHHMM(), createdAt:Date.now(), cat:pickedCat, note:$("fNote").value.trim(), amt:Math.round(amt*100)/100, pay:$("fPay").value};
-  (DATA[state.month] = DATA[state.month]||[]).push(rec); persistData();
+  (DATA[state.month] = DATA[state.month]||[]).push(rec);
+  persistData();
   $("fAmount").value=""; $("fNote").value="";
   renderAll();
   flashSave("已记入这笔消费");
@@ -1279,7 +1262,7 @@ function flashSave(msg, err){
 /* ============ 月份切换 ============ */
 function renderMonth(m){
   $("monthLabel").textContent = MONTH_LABEL(m);
-  renderKPI(m); renderCharts(m); renderLedger(m); renderInsights(m);
+  renderKPI(m); renderCharts(m); renderLedger(m); renderBudget(m); renderInsights(m);
 }
 function renderAll(){ renderMonth(state.month); }
 
@@ -1287,6 +1270,7 @@ function renderAll(){ renderMonth(state.month); }
 $("prevMonth").onclick = ()=>{ state.month = prevMonth(state.month); renderAll(); };
 $("nextMonth").onclick = ()=>{ state.month = nextMonth(state.month); renderAll(); };
 $("saveBtn").onclick = saveRecord;
+$("cancelEditBtn")?.addEventListener("click", cancelRecordEdit);
 $("fAmount").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
 $("fNote").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
 $("fDate").value = defaultDate(CUR);
@@ -1296,8 +1280,7 @@ document.querySelectorAll("[data-charttab]").forEach(b=>{
     document.querySelectorAll("[data-charttab]").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");
     state.chartTab = b.dataset.charttab;
-    if(state.chartTab==="trend"){ renderTrend(state.month); }
-    else{ renderCatBar(state.month); }
+    renderCharts(state.month);
   };
 });
 
@@ -1317,126 +1300,9 @@ syncRangeUI();
 /* ============ 启动 ============ */
 renderCatPicker();
 selectCat("餐饮");
-
-if(window.echarts){
-  initCharts();
-  renderAll();
-  loadCloudState();
-}else{
-  renderAll();
-  loadCloudState();
-  injectLib("https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js", ok=>{
-    if(ok && window.echarts){
-      initCharts();
-      renderAll();
-    }else{
-      const ph = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-3);font-size:12px;text-align:center;padding:20px">图表组件加载失败（网络原因），<br>其余功能不受影响，请稍后刷新页面重试</div>';
-      $("trendChart").innerHTML = ph;
-      $("catChart").innerHTML = ph;
-    }
-  });
-}
+renderAll();
+loadCloudState();
 </script>
-
-<script id="ledger-edit-js">
-let __editingIndex = null;
-
-function __setCategoryForEdit(cat){
-  try {
-    if(typeof selectedCat!=="undefined") selectedCat=cat;
-    if(typeof selectedCategory!=="undefined") selectedCategory=cat;
-  } catch(e){}
-  document.querySelectorAll('[data-cat]').forEach(b=>{
-    const hit=(b.dataset.cat===cat);
-    b.classList.toggle('active',hit);
-    b.classList.toggle('selected',hit);
-  });
-}
-
-function editRecord(index){
-  const r=DATA[index];
-  if(!r) return;
-  __editingIndex=index;
-  const amountEl=document.getElementById('fAmount');
-  const dateEl=document.getElementById('fAmount');
-  const payEl=document.getElementById('fPay');
-  const noteEl=document.getElementById('fAmount');
-  if(amountEl) amountEl.value=r.amount ?? "";
-  if(dateEl) dateEl.value=r.date ?? "";
-  if(payEl) payEl.value=r.pay ?? r.payment ?? r.method ?? "微信";
-  if(noteEl) noteEl.value=r.note ?? "";
-  __setCategoryForEdit(r.category ?? r.cat ?? "其他");
-  document.getElementById('editingNote')?.classList.add('show');
-  const sb=document.getElementById('saveBtn');
-  if(sb) sb.textContent="保存修改";
-  amountEl?.scrollIntoView({behavior:"smooth",block:"center"});
-}
-
-function cancelRecordEdit(){
-  __editingIndex=null;
-  document.getElementById('editingNote')?.classList.remove('show');
-  const sb=document.getElementById('saveBtn');
-  if(sb) sb.textContent="保存这笔消费";
-}
-
-document.addEventListener("DOMContentLoaded",()=>{
-  document.getElementById("cancelEditBtn")?.addEventListener("click",cancelRecordEdit);
-});
-</script>
-
-
-<script id="ledger-edit-save-intercept">
-document.addEventListener("DOMContentLoaded",()=>{
- const btn=document.getElementById('saveBtn');
- if(!btn) return;
- btn.addEventListener("click",(e)=>{
-   if(__editingIndex===null) return;
-   e.preventDefault(); e.stopImmediatePropagation();
-   const old=DATA[__editingIndex];
-   if(!old){cancelRecordEdit();return;}
-   const amount=parseFloat(document.getElementById('fAmount')?.value||"0");
-   if(!(amount>0)){ if(typeof toast==="function") toast("请输入正确的消费金额"); return; }
-   const date=document.getElementById('fAmount')?.value||old.date;
-   const pay=document.getElementById('fPay')?.value||old.pay||old.payment||old.method||"微信";
-   const note=document.getElementById('fAmount')?.value||"";
-   let cat=old.category||old.cat||"其他";
-   try {
-     if(typeof selectedCat!=="undefined") cat=selectedCat;
-     else if(typeof selectedCategory!=="undefined") cat=selectedCategory;
-   } catch(err){}
-   DATA[__editingIndex]={...old,date,amount,note};
-   if("category" in old) DATA[__editingIndex].category=cat; else DATA[__editingIndex].cat=cat;
-   if("pay" in old) DATA[__editingIndex].pay=pay;
-   else if("payment" in old) DATA[__editingIndex].payment=pay;
-   else if("method" in old) DATA[__editingIndex].method=pay;
-   else DATA[__editingIndex].pay=pay;
-   persistData();
-   cancelRecordEdit();
-   renderAll();
-   if(typeof toast==="function") toast("已更新这笔消费");
- },true);
-});
-</script>
-
-
-<script id="ledger-edit-fallback">
-const __origRenderLedger = renderLedger;
-renderLedger = function(...args){
-  const ret=__origRenderLedger.apply(this,args);
-  const rows=[...document.querySelectorAll('#ledgerBody tr')];
-  rows.forEach((tr,i)=>{
-    const cell=tr.children[4];
-    if(!cell || cell.querySelector('.ledger-edit-btn')) return;
-    const b=document.createElement('button');
-    b.type='button'; b.className='ledger-edit-btn'; b.textContent='编辑';
-    b.addEventListener('click',()=>editRecord(i));
-    cell.insertBefore(b,cell.firstChild);
-    cell.classList.add('ledger-edit-cell');
-  });
-  return ret;
-};
-</script>
-
 
 <script id="ledger-align-insight-js">
 (function(){
