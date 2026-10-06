@@ -643,216 +643,207 @@ function persistBudget(){
    使用新的存储键，避免旧版本 mock 数据继续出现在手机/电脑。
 ================================================ */
 let DATA = {};
-let __cloudSaveTimer = null;
 let __cloudReady = false;
 let __cloudSaving = false;
-let __cloudSaveAgain = false;
-let __localRevision = 0;
-let __lastSavedRevision = 0;
+let __cloudSaveTimer = null;
 let __cloudRefreshBusy = false;
 let __lastCloudUpdatedAt = "";
 
 const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
 const SUPABASE_ROW_ID = 1;
-const LOCAL_CACHE_KEY = "biu_bookkeeping_cache_v147";
+const LOCAL_CACHE_KEY = "biu_bookkeeping_cache_v148";
 
 function supabaseHeaders(extra={}){
   return {
-    "apikey": SUPABASE_KEY,
-    "Authorization": "Bearer " + SUPABASE_KEY,
+    apikey: SUPABASE_KEY,
+    Authorization: "Bearer " + SUPABASE_KEY,
     ...extra
   };
 }
 
+function setSyncState(state, detail=""){
+  window.__biuSyncState = {state, detail, at:new Date().toISOString()};
+  let el = document.getElementById("biuSyncState");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "biuSyncState";
+    el.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:9999;padding:7px 10px;border:1px solid #ddd7ca;border-radius:8px;background:#fffdf8;color:#687069;font-size:11px;box-shadow:0 2px 10px rgba(0,0,0,.06);";
+    document.body.appendChild(el);
+  }
+  const map = {
+    local:"已保存本机",
+    saving:"正在同步…",
+    synced:"云端已同步",
+    error:"同步失败 · 已保存在本机"
+  };
+  el.textContent = map[state] || state;
+  el.title = detail || "";
+}
+
 function readLocalCache(){
   try{
-    const x = JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY) || "null");
-    return x && typeof x==="object" ? x : null;
+    const c = JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY) || "null");
+    return c && typeof c==="object" ? c : null;
   }catch(_){ return null; }
 }
 function writeLocalCache(dirty=true){
   try{
     localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
-      data: DATA,
-      budget: BUDGET,
-      dirty: !!dirty,
-      cloudUpdatedAt: __lastCloudUpdatedAt || "",
-      localUpdatedAt: new Date().toISOString()
+      data:DATA,
+      budget:BUDGET,
+      dirty:!!dirty,
+      cloudUpdatedAt:__lastCloudUpdatedAt || "",
+      savedAt:new Date().toISOString()
     }));
-  }catch(err){ console.warn("local cache save failed", err); }
+    setSyncState(dirty ? "local" : "synced");
+  }catch(err){ console.error("local cache failed",err); }
 }
 function restoreLocalCache(){
-  const c = readLocalCache();
+  const c=readLocalCache();
   if(!c) return false;
-  if(c.data && typeof c.data==="object") DATA = c.data;
-  if(c.budget && typeof c.budget==="object") BUDGET = {...DEFAULT_BUDGET, ...c.budget};
-  BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-  __lastCloudUpdatedAt = c.cloudUpdatedAt || "";
-  if(c.dirty){
-    __localRevision = 1;
-    __lastSavedRevision = 0;
-  }
+  if(c.data && typeof c.data==="object") DATA=c.data;
+  if(c.budget && typeof c.budget==="object") BUDGET={...DEFAULT_BUDGET,...c.budget};
+  BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
+  __lastCloudUpdatedAt=c.cloudUpdatedAt || "";
+  setSyncState(c.dirty ? "local" : "synced");
   return true;
 }
 
 async function fetchCloudRow(){
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=data_json,budget_json,updated_at`,
-    {cache:"no-store", headers:supabaseHeaders()}
-  );
-  if(!res.ok) throw new Error("HTTP "+res.status+" "+await res.text());
-  const rows = await res.json();
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/bookkeeping_state?id=eq.${SUPABASE_ROW_ID}&select=id,data_json,budget_json,updated_at&_=${Date.now()}`,{
+    cache:"no-store",
+    headers:supabaseHeaders({"Cache-Control":"no-cache"})
+  });
+  const raw=await res.text();
+  if(!res.ok) throw new Error(`GET ${res.status}: ${raw}`);
+  const rows=raw ? JSON.parse(raw) : [];
   return rows?.[0] || null;
 }
 
-/* 首次读取：本机有未同步数据时绝不让云端覆盖，并优先补传。 */
-async function loadCloudState({silent=false}={}){
-  try{
-    const local = readLocalCache();
-    if(local?.dirty){
-      __cloudReady = true;
-      await saveCloudState();
-      return true;
-    }
-
-    const cloud = await fetchCloudRow();
-    if(!cloud){
-      __cloudReady = true;
-      return false;
-    }
-
-    DATA = cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
-    BUDGET = cloud.budget_json && typeof cloud.budget_json==="object"
-      ? {...DEFAULT_BUDGET, ...cloud.budget_json}
-      : {...DEFAULT_BUDGET};
-    BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-    __lastCloudUpdatedAt = cloud.updated_at || "";
-    __cloudReady = true;
-    __lastSavedRevision = __localRevision;
-    writeLocalCache(false);
-    renderAll();
-    return true;
-  }catch(err){
-    console.error("Supabase load failed:", err);
-    __cloudReady = true;
-    if(!silent) showRuntimeMessage("云端读取失败，已保留本机记录；联网后会继续同步。");
-    return false;
-  }
-}
-
-/* 保存：先落本机，再 UPSERT 云端；只有服务器返回并校验成功才清除 dirty。 */
 async function saveCloudState(){
-  if(!__cloudReady) return false;
-  if(__cloudSaving){ __cloudSaveAgain = true; return false; }
+  if(!__cloudReady || __cloudSaving) return false;
+  __cloudSaving=true;
+  setSyncState("saving");
 
-  __cloudSaving = true;
-  const revisionToSave = __localRevision;
-  const payload = {
-    id: SUPABASE_ROW_ID,
-    data_json: JSON.parse(JSON.stringify(DATA)),
-    budget_json: JSON.parse(JSON.stringify(BUDGET)),
-    updated_at: new Date().toISOString()
+  const payload={
+    id:SUPABASE_ROW_ID,
+    data_json:JSON.parse(JSON.stringify(DATA)),
+    budget_json:JSON.parse(JSON.stringify(BUDGET)),
+    updated_at:new Date().toISOString()
   };
 
   try{
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookkeeping_state?on_conflict=id`,
-      {
-        method:"POST",
-        headers:supabaseHeaders({
-          "Content-Type":"application/json",
-          "Prefer":"resolution=merge-duplicates,return=representation"
-        }),
-        body:JSON.stringify(payload)
-      }
-    );
-    const raw = await res.text();
-    if(!res.ok) throw new Error("HTTP "+res.status+" "+raw);
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/bookkeeping_state?on_conflict=id`,{
+      method:"POST",
+      cache:"no-store",
+      headers:supabaseHeaders({
+        "Content-Type":"application/json",
+        "Prefer":"resolution=merge-duplicates,return=representation"
+      }),
+      body:JSON.stringify(payload)
+    });
+    const raw=await res.text();
+    if(!res.ok) throw new Error(`POST ${res.status}: ${raw}`);
+    const rows=raw ? JSON.parse(raw) : [];
+    const saved=Array.isArray(rows) ? rows.find(x=>Number(x.id)===SUPABASE_ROW_ID) : null;
+    if(!saved) throw new Error("Supabase 没有返回 id=1");
 
-    let rows=[];
-    try{ rows = raw ? JSON.parse(raw) : []; }catch(_){ rows=[]; }
-    const saved = Array.isArray(rows) ? rows.find(x=>Number(x.id)===SUPABASE_ROW_ID) : null;
-    if(!saved) throw new Error("Supabase 未返回 id=1");
-
-    if(JSON.stringify(payload.data_json) !== JSON.stringify(saved.data_json || {})){
-      throw new Error("云端数据校验不一致");
+    // 再 GET 一次，以服务端实际数据为准验证写入。
+    const verify=await fetchCloudRow();
+    if(!verify) throw new Error("写入后读取不到 id=1");
+    if(JSON.stringify(verify.data_json || {}) !== JSON.stringify(payload.data_json)){
+      throw new Error("写入后校验失败：云端 data_json 与本机不一致");
     }
 
-    __lastCloudUpdatedAt = saved.updated_at || payload.updated_at;
-    __lastSavedRevision = Math.max(__lastSavedRevision, revisionToSave);
+    __lastCloudUpdatedAt=verify.updated_at || saved.updated_at || payload.updated_at;
     writeLocalCache(false);
-    window.__lastCloudSaveAt = Date.now();
+    setSyncState("synced",__lastCloudUpdatedAt);
     return true;
   }catch(err){
-    console.error("Supabase save failed:", err);
+    console.error("Supabase save failed",err);
     writeLocalCache(true);
-    showRuntimeMessage("云端暂未同步，但记录已保存在本机；重新打开也不会丢。");
+    setSyncState("error",String(err));
     return false;
   }finally{
-    __cloudSaving = false;
-    if(__cloudSaveAgain || __localRevision > revisionToSave){
-      __cloudSaveAgain = false;
-      setTimeout(saveCloudState, 250);
-    }
+    __cloudSaving=false;
   }
 }
 
 function queueCloudSave(){
-  __localRevision++;
-  writeLocalCache(true);
+  writeLocalCache(true);               // 第一步：立即保本机
   clearTimeout(__cloudSaveTimer);
-  __cloudSaveTimer = setTimeout(async ()=>{
-    __cloudSaveTimer = null;
-    await saveCloudState();
-  }, 120);
+  __cloudSaveTimer=setTimeout(async()=>{
+    __cloudSaveTimer=null;
+    await saveCloudState();            // 第二步：立即推云端
+  },80);
 }
 function persistData(){ queueCloudSave(); }
 
-/* 跨设备同步：本机没有未同步修改时，每 5 秒检查一次云端 updated_at。 */
-async function refreshCloudState(){
-  if(__cloudRefreshBusy || __cloudSaving || __cloudSaveTimer) return false;
-  const local = readLocalCache();
-  if(local?.dirty || __localRevision > __lastSavedRevision) return false;
+async function loadCloudState({silent=false}={}){
+  __cloudReady=true;
+  const local=readLocalCache();
 
-  __cloudRefreshBusy = true;
+  // 本机有未同步修改：先推云端，绝不让旧云端覆盖。
+  if(local?.dirty){
+    await saveCloudState();
+    return true;
+  }
+
   try{
-    const cloud = await fetchCloudRow();
+    const cloud=await fetchCloudRow();
     if(!cloud) return false;
-    const remoteStamp = cloud.updated_at || "";
-    if(remoteStamp && remoteStamp === __lastCloudUpdatedAt) return true;
-
-    // 请求期间如果本机又产生修改，放弃这次云端结果。
-    const nowLocal = readLocalCache();
-    if(nowLocal?.dirty || __cloudSaving || __cloudSaveTimer || __localRevision > __lastSavedRevision) return false;
-
-    DATA = cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
-    BUDGET = cloud.budget_json && typeof cloud.budget_json==="object"
-      ? {...DEFAULT_BUDGET, ...cloud.budget_json}
-      : {...DEFAULT_BUDGET};
-    BUDGET_TOTAL = Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
-    __lastCloudUpdatedAt = remoteStamp;
+    DATA=cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
+    BUDGET=cloud.budget_json && typeof cloud.budget_json==="object" ? {...DEFAULT_BUDGET,...cloud.budget_json} : {...DEFAULT_BUDGET};
+    BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
+    __lastCloudUpdatedAt=cloud.updated_at || "";
     writeLocalCache(false);
     renderAll();
     return true;
   }catch(err){
-    console.error("Supabase refresh failed:", err);
+    console.error("Supabase load failed",err);
+    if(!silent) setSyncState("error",String(err));
     return false;
-  }finally{
-    __cloudRefreshBusy = false;
   }
 }
 
-document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState === "visible") setTimeout(refreshCloudState, 300);
-});
-window.addEventListener("focus", ()=>setTimeout(refreshCloudState, 300));
-setInterval(()=>{
-  if(document.visibilityState === "visible") refreshCloudState();
-}, 5000);
+async function refreshCloudState(){
+  if(__cloudRefreshBusy || __cloudSaving || __cloudSaveTimer) return false;
+  if(readLocalCache()?.dirty) return false;
 
-/* 页面关闭前至少保证本机缓存已经落盘；云端失败也不会丢记录。 */
-window.addEventListener("pagehide", ()=>writeLocalCache(__localRevision > __lastSavedRevision));
+  __cloudRefreshBusy=true;
+  try{
+    const cloud=await fetchCloudRow();
+    if(!cloud) return false;
+    if((cloud.updated_at || "") === __lastCloudUpdatedAt) return true;
+
+    DATA=cloud.data_json && typeof cloud.data_json==="object" ? cloud.data_json : {};
+    BUDGET=cloud.budget_json && typeof cloud.budget_json==="object" ? {...DEFAULT_BUDGET,...cloud.budget_json} : {...DEFAULT_BUDGET};
+    BUDGET_TOTAL=Object.values(BUDGET).reduce((a,b)=>a+Number(b||0),0);
+    __lastCloudUpdatedAt=cloud.updated_at || "";
+    writeLocalCache(false);
+    renderAll();
+    return true;
+  }catch(err){
+    console.error("Supabase refresh failed",err);
+    return false;
+  }finally{
+    __cloudRefreshBusy=false;
+  }
+}
+
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible") refreshCloudState();
+});
+window.addEventListener("focus",refreshCloudState);
+setInterval(()=>{
+  if(document.visibilityState==="visible") refreshCloudState();
+},2000);
+
+window.addEventListener("pagehide",()=>{
+  const c=readLocalCache();
+  if(c?.dirty) setSyncState("local");
+});
 
 function showRuntimeMessage(msg){
   let n=document.getElementById("runtimeNotice");
