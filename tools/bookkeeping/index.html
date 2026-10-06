@@ -494,8 +494,8 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 
 <style>
-.donut-pct-out{font-size:8px;font-weight:700;fill:#4f5752}
-.donut-guide{stroke:#9aa19a;stroke-width:.75;fill:none}
+.donut-pct-out{font-size:9px;font-weight:700;fill:#4f5752}
+.donut-guide{stroke:#9aa19a;stroke-width:.7;fill:none}
 </style>
 </head>
 <body>
@@ -1091,19 +1091,14 @@ function renderDonut(m){
           return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
         }).join("");
         const makeSide=(right)=>{
-          const a=labelItems.filter(v=>v.right===right).sort((p,q)=>p.y1-q.y1);
-          const minY=12,maxY=128,gapY=12;
-          a.forEach((v,i)=>{
-            let y=Math.max(minY,Math.min(maxY,v.y1));
-            if(i && y-a[i-1].labelY<gapY) y=a[i-1].labelY+gapY;
-            v.labelY=y;
-          });
-          if(a.length && a[a.length-1].labelY>maxY){
-            const shift=a[a.length-1].labelY-maxY;
-            a.forEach(v=>v.labelY-=shift);
-          }
+          // 保持圆环本身的顺时针顺序；仅把文字终点错开，不改变分类顺序
+          const a=labelItems.filter(v=>v.right===right).sort((p,q)=>p.angle-q.angle);
+          if(!a.length) return "";
+          const top=18,bottom=122;
+          const step=a.length===1?0:(bottom-top)/(a.length-1);
+          a.forEach((v,i)=>v.labelY=top+i*step);
           return a.map(v=>{
-            const x2=right?130:10, x3=right?137:3, tx=right?139:1;
+            const x2=right?126:14, x3=right?134:6, tx=right?136:4;
             return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${x2} ${v.labelY.toFixed(1)} L ${x3} ${v.labelY.toFixed(1)}" class="donut-guide"></path><text x="${tx}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" text-anchor="${right?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
           }).join("");
         };
