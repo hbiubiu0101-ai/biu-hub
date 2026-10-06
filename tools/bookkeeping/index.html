@@ -503,6 +503,47 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 #insightList{display:block!important;min-height:48px!important}
 #insightList .insight{display:flex!important}
 </style>
+
+<style id="v34-clean-donut-insight">
+/* 圆环：只保留圆环与中心金额，不再显示任何外部引线/百分比 */
+.donut-layout-clean{display:flex!important;flex-direction:column!important;align-items:center!important;gap:14px!important}
+.donut-layout-clean .donut-svg-wrap{width:170px!important;height:170px!important;flex:0 0 170px!important}
+.donut-layout-clean .donut-svg-wrap svg{width:100%!important;height:100%!important;overflow:visible!important}
+.donut-category-grid{
+  width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;margin-top:2px;
+}
+.donut-category-card{
+  appearance:none;border:1px solid #E4DED2;background:#fff;border-radius:9px;
+  padding:8px 10px;min-width:0;text-align:left;cursor:pointer;color:var(--ink);
+  transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
+}
+.donut-category-card:hover{border-color:var(--cat-color);box-shadow:0 2px 8px rgba(36,43,39,.06);transform:translateY(-1px)}
+.donut-card-top{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:6px;font-size:11px;line-height:1.2}
+.donut-card-top i{width:7px;height:7px;border-radius:50%;display:block}
+.donut-card-top b{font-weight:700;white-space:nowrap}
+.donut-card-top strong{font-size:11px;color:var(--cat-color);font-weight:800;white-space:nowrap}
+.donut-card-amount{display:block;margin-top:5px;padding-left:14px;font-size:11px;color:var(--ink-3);white-space:nowrap}
+
+/* 洞察：强制显示实际内容 */
+#insightList{display:grid!important;gap:8px!important;min-height:0!important;padding:12px 14px 14px!important}
+.insight-result-card{
+  display:grid;grid-template-columns:8px 1fr;gap:9px;align-items:start;
+  border:1px solid #E4DED2;border-radius:9px;padding:10px 11px;background:#fff;
+}
+.insight-result-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;background:#1B6B53}
+.insight-result-card.amber .insight-result-dot{background:#C96F2B}
+.insight-result-card.blue .insight-result-dot{background:#3E6E8F}
+.insight-result-card.red .insight-result-dot{background:#B4482E}
+.insight-result-card b{display:block;font-size:12px;line-height:1.45;color:var(--ink)}
+.insight-result-card p{margin:3px 0 0;font-size:11px;line-height:1.55;color:var(--ink-3)}
+.insight-empty{padding:2px 0;font-size:12px;color:var(--ink-3)}
+
+@media(max-width:980px){
+  .donut-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .donut-layout-clean .donut-svg-wrap{width:190px!important;height:190px!important;flex-basis:190px!important}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1077,77 +1118,30 @@ function renderDonut(m){
     box.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:12px">本月分类占比</div><div style="display:flex;justify-content:center;padding-top:34px"><div style="width:132px;height:132px;border-radius:50%;background:#E7E2D6;display:grid;place-items:center"><div style="width:76px;height:76px;border-radius:50%;background:white;display:grid;place-items:center;color:#5C645E">¥0</div></div></div>`;
     return;
   }
-  let deg=0, stops=[];
-  by.forEach(x=>{const a=deg,b=deg+x.amt/total*360;stops.push(`${x.color} ${a}deg ${b}deg`);deg=b;});
+
+  // 底部分类卡片：分类 + 百分比 + 金额。
   const legend=by.map(x=>{
-    const pct=(x.amt/total*100).toFixed(1);
-    return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-legend-item"><i style="background:${x.color}"></i><span>${escHtml(x.key)}</span><span>${money0(x.amt)}</span></button>`;
+    const pct=x.amt/total*100;
+    const pctText=(pct>0 && pct<0.1) ? pct.toFixed(2) : pct.toFixed(1);
+    return `<button type="button" data-cat="${escHtml(x.key)}" class="donut-category-card" style="--cat-color:${x.color}">
+      <span class="donut-card-top"><i style="background:${x.color}"></i><b>${escHtml(x.key)}</b><strong>${pctText}%</strong></span>
+      <span class="donut-card-amount">${money0(x.amt)}</span>
+    </button>`;
   }).join("");
+
   box.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:12px">本月分类占比</div>
-    <div class="donut-layout">
+    <div class="donut-layout donut-layout-clean">
       <div class="donut-svg-wrap">${(()=>{
         let acc=0;
         const cx=70,cy=70,r=50,sw=30,circ=2*Math.PI*r;
-        const labelItems=[];
         const arcs=by.map(x=>{
           const pct=x.amt/total, dash=pct*circ, gap=circ-dash;
           const start=acc; acc+=pct;
-          const mid=start+pct/2, angle=mid*2*Math.PI-Math.PI/2;
-          const x1=cx+Math.cos(angle)*66, y1=cy+Math.sin(angle)*66;
-          labelItems.push({pct,angle,x1,y1,right:Math.cos(angle)>=0,color:x.color,key:x.key});
           return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
         }).join("");
-        // 百分比引导线：按左右两侧分别做“单调避让”。
-        // 标签Y顺序永远跟扇区锚点Y顺序一致，因此同侧引导线不会互相交叉。
-        const layoutSide=(arr,right)=>{
-          arr.sort((a,b)=>a.y1-b.y1);
-          const n=arr.length;
-          if(!n) return;
-          const minGap=13;
-          const top=10, bottom=130;
-          const natural=arr.map(v=>Math.max(top,Math.min(bottom,cy+Math.sin(v.angle)*79)));
-          const ys=[...natural];
-
-          // 向下推开
-          for(let i=1;i<n;i++) ys[i]=Math.max(ys[i],ys[i-1]+minGap);
-          // 超出底部后整体上移
-          if(ys[n-1]>bottom){
-            const d=ys[n-1]-bottom;
-            for(let i=0;i<n;i++) ys[i]-=d;
-          }
-          // 再从下往上校正，确保最小间距
-          for(let i=n-2;i>=0;i--) ys[i]=Math.min(ys[i],ys[i+1]-minGap);
-          // 如果顶部越界，再整体下移
-          if(ys[0]<top){
-            const d=top-ys[0];
-            for(let i=0;i<n;i++) ys[i]+=d;
-          }
-
-          arr.forEach((v,i)=>{
-            v.side=right?1:-1;
-            v.labelY=ys[i];
-            // 第一折点只向圆外走，第二段再去标签Y；
-            // 同侧标签保持相同X通道，配合单调Y即可避免交叉。
-            const radialX=cx+Math.cos(v.angle)*73;
-            const radialY=cy+Math.sin(v.angle)*73;
-            v.radialX=radialX;
-            v.radialY=radialY;
-            v.elbowX=cx+v.side*82;
-            v.endX=cx+v.side*91;
-            v.textX=v.endX+v.side*3;
-          });
-        };
-        const left=labelItems.filter(v=>!v.right);
-        const right=labelItems.filter(v=>v.right);
-        layoutSide(left,false);
-        layoutSide(right,true);
-        const guides=[...left,...right].map(v=>{
-          const pctText=(v.pct*100).toFixed(v.pct<0.01?2:1)+"%";
-          return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${v.radialX.toFixed(1)} ${v.radialY.toFixed(1)} L ${v.elbowX.toFixed(1)} ${v.labelY.toFixed(1)} L ${v.endX.toFixed(1)} ${v.labelY.toFixed(1)}" fill="none" stroke="${v.color}" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"></path><text x="${v.textX.toFixed(1)}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" fill="${v.color}" text-anchor="${v.side>0?"start":"end"}" dominant-baseline="middle">${pctText}</text>`;
-        }).join("");
-        return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}${guides}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
+        return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
       })()}</div>
-      <div class="donut-legend-horizontal">${legend}</div>
+      <div class="donut-category-grid">${legend}</div>
     </div>`;
   box.querySelectorAll("button[data-cat]").forEach(b=>b.onclick=()=>{
     state.catFilter=state.catFilter===b.dataset.cat?null:b.dataset.cat;
@@ -1216,52 +1210,73 @@ function renderBudget(m){
 }
 
 /* ============ 智能洞察 ============ */
-function insightMonthRecords(m){
-  // 直接复用页面图表/明细正在使用的数据源，避免“图表有数据、洞察为空”。
-  const raw = typeof rangeRecords==="function" ? rangeRecords(m) : (Array.isArray(DATA?.[m])?DATA[m]:[]);
-  return raw.map(r=>({
-    ...r,
-    amt:Number(r.amt ?? r.amount ?? 0),
-    cat:r.cat ?? r.category ?? "其他",
-    date:String(r.date ?? r.expense_date ?? ""),
-    note:r.note ?? ""
-  })).filter(r=>Number.isFinite(r.amt)&&r.amt>0);
-}
-function buildInsights(m){
-  const recs=insightMonthRecords(m);
-  if(!recs.length) return [];
-  const total=recs.reduce((s,r)=>s+r.amt,0);
-  const spent={},count={};
-  recs.forEach(r=>{spent[r.cat]=(spent[r.cat]||0)+r.amt;count[r.cat]=(count[r.cat]||0)+1;});
-  const ranked=Object.entries(spent).sort((a,b)=>b[1]-a[1]);
-  const [topCat,topAmt]=ranked[0];
-  const top2=ranked.slice(0,2).reduce((s,x)=>s+x[1],0);
-  const budget=Number((BUDGET&&BUDGET[m]) ?? (BUDGET&&BUDGET.default) ?? 8000);
-  const out=[];
-  out.push({type:"up",title:`本月已消费 ${money(total)}，共 ${recs.length} 笔`,desc:`${topCat}最高：${money(topAmt)}，占 ${(topAmt/total*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
-  if(ranked.length>1) out.push({type:"trend",title:`前两类支出占 ${(top2/total*100).toFixed(1)}%`,desc:`${ranked[0][0]} ${money(ranked[0][1])} · ${ranked[1][0]} ${money(ranked[1][1])}`,icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"});
-  if(budget>0){
-    const diff=total-budget;
-    out.push(diff>0
-      ? {type:"up",title:`本月已超预算 ${money(diff)}`,desc:`预算 ${money(budget)}，当前超出 ${(diff/budget*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"}
-      : {type:"tip",title:`预算剩余 ${money(-diff)}`,desc:`已使用 ${(total/budget*100).toFixed(1)}% 的本月预算`,icon:"<path d='M5 12l4 4L19 6'/>"});
-  }
-  const big=[...recs].sort((a,b)=>b.amt-a.amt)[0];
-  if(big) out.push({type:"idea",title:`最大单笔 ${money(big.amt)}`,desc:`${big.note||big.cat} · 占本月 ${(big.amt/total*100).toFixed(1)}%`,icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"});
-  return out;
-}
 function renderInsights(m){
   const box=document.getElementById("insightList");
   if(!box) return;
-  let list=[];
-  try{ list=buildInsights(m); }catch(err){ console.error("insight render failed",err); }
-  if(!list.length){
-    box.innerHTML='<div class="insight"><div class="i-text" style="color:var(--ink-3)">本月暂无消费记录，新增一笔后立即生成洞察。</div></div>';
+
+  // 洞察直接读取当前月 DATA，不再经过图表 range/filter 状态。
+  const recs=(Array.isArray(DATA?.[m])?DATA[m]:[])
+    .map(r=>({
+      amt:Number(r.amt ?? r.amount ?? 0),
+      cat:String(r.cat ?? r.category ?? "其他"),
+      note:String(r.note ?? ""),
+      date:String(r.date ?? r.expense_date ?? ""),
+      time:String(r.time ?? r.expense_time ?? "")
+    }))
+    .filter(r=>Number.isFinite(r.amt)&&r.amt>0);
+
+  if(!recs.length){
+    box.innerHTML='<div class="insight-empty">本月暂无消费记录，新增一笔后立即生成洞察。</div>';
     return;
   }
-  box.innerHTML=list.map(it=>`<div class="insight"><div class="i-ico ${it.type}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg></div><div class="i-text"><b>${it.title}</b><div class="muted">${it.desc}</div></div></div>`).join("");
-}
 
+  const total=recs.reduce((s,r)=>s+r.amt,0);
+  const groups={};
+  recs.forEach(r=>groups[r.cat]=(groups[r.cat]||0)+r.amt);
+  const ranked=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  const top=ranked[0];
+  const second=ranked[1]||null;
+  const maxRec=[...recs].sort((a,b)=>b.amt-a.amt)[0];
+  const budget=Number(BUDGET_TOTAL||0);
+  const avg=total/recs.length;
+
+  const cards=[
+    {
+      cls:"jade",
+      title:`本月已消费 ${money(total)}`,
+      desc:`共 ${recs.length} 笔，平均每笔 ${money(avg)}`
+    },
+    {
+      cls:"amber",
+      title:`${top[0]}是最大支出`,
+      desc:`${money(top[1])} · 占本月 ${(top[1]/total*100).toFixed(1)}%${second?`；其次是${second[0]} ${money(second[1])}`:""}`
+    },
+    {
+      cls:"blue",
+      title:`最大单笔 ${money(maxRec.amt)}`,
+      desc:`${maxRec.note||maxRec.cat}${maxRec.date?` · ${maxRec.date.slice(5).replace("-","/")}`:""}`
+    }
+  ];
+
+  if(budget>0){
+    const left=budget-total;
+    cards.push(left>=0?{
+      cls:"jade",
+      title:`预算剩余 ${money(left)}`,
+      desc:`本月预算 ${money(budget)}，已使用 ${(total/budget*100).toFixed(1)}%`
+    }:{
+      cls:"red",
+      title:`已超预算 ${money(Math.abs(left))}`,
+      desc:`本月预算 ${money(budget)}，当前支出为预算的 ${(total/budget*100).toFixed(1)}%`
+    });
+  }
+
+  box.innerHTML=cards.map(c=>`
+    <div class="insight-result-card ${c.cls}">
+      <span class="insight-result-dot"></span>
+      <div><b>${escHtml(c.title)}</b><p>${escHtml(c.desc)}</p></div>
+    </div>`).join("");
+}
 /* ============ 智能识别（文字解析 + 图片 OCR） ============ */
 const CAT_RULES = [
   {cat:"餐饮", keys:["外卖","美团","饿了么","奶茶","咖啡","早餐","午餐","晚餐","火锅","烧烤","汉堡","面馆","饭店","餐厅","小吃","甜品","水果","麦当劳","肯德基","星巴克","瑞幸","茶百道","蜜雪","聚餐","买菜","零食","面包","食堂","点心"]},
