@@ -835,7 +835,8 @@ async function refreshFromCloud(showState=true){
     await fetchBudget();
     __cloudReady=true;
     saveFallbackCache();
-    renderAll();                        // 关键：读取完成立即重绘 KPI / 图表 / 明细
+    renderAll();                        // 云端读取完成立即重绘全部内容（含智能洞察）
+    requestAnimationFrame(()=>renderInsights(state.month));
     setSyncState(`云端已同步 · ${rows.length}笔`);
     return true;
   }catch(err){
@@ -1091,15 +1092,18 @@ function renderDonut(m){
           return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
         }).join("");
         const makeSide=(right)=>{
-          // 保持圆环本身的顺时针顺序；仅把文字终点错开，不改变分类顺序
-          const a=labelItems.filter(v=>v.right===right).sort((p,q)=>p.angle-q.angle);
+          // 按圆环连接点从上到下排列，再从上到下分配标签位置：
+          // 连接点顺序和文字顺序一致，因此引导线不会交叉。
+          const a=labelItems.filter(v=>v.right===right).sort((p,q)=>p.y1-q.y1);
           if(!a.length) return "";
-          const top=18,bottom=122;
+          const top=16,bottom=124;
           const step=a.length===1?0:(bottom-top)/(a.length-1);
           a.forEach((v,i)=>v.labelY=top+i*step);
           return a.map(v=>{
-            const x2=right?126:14, x3=right?134:6, tx=right?136:4;
-            return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${x2} ${v.labelY.toFixed(1)} L ${x3} ${v.labelY.toFixed(1)}" class="donut-guide"></path><text x="${tx}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" text-anchor="${right?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
+            const elbowX=right?126:14;
+            const endX=right?134:6;
+            const textX=right?136:4;
+            return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${elbowX} ${v.labelY.toFixed(1)} L ${endX} ${v.labelY.toFixed(1)}" class="donut-guide"></path><text x="${textX}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" text-anchor="${right?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
           }).join("");
         };
         const guides=makeSide(false)+makeSide(true);
@@ -1175,73 +1179,98 @@ function renderBudget(m){
 
 /* ============ 智能洞察 ============ */
 function buildInsights(m){
-  const recs=monthRecords(m);
+  const recs = (monthRecords(m)||[]).filter(r=>Number(r.amt)>0);
   if(!recs.length) return [];
-  const out=[];
-  const total=sumBy(recs,r=>r.amt);
-  const by=catSummary(m).filter(x=>x.amt>0).sort((a,b)=>b.amt-a.amt);
-  const prev=prevMonth(m), prevTotal=monthTotal(prev);
-  const spentMap={}; recs.forEach(r=>spentMap[r.cat]=(spentMap[r.cat]||0)+r.amt);
 
-  // 有 1 笔就立即给出基础洞察
-  const top=by[0];
-  if(top) out.push({
-    type:"up",
-    title:`${top.key}是本月最大支出，共 ${money0(top.amt)}`,
-    desc:`占本月总支出 ${(top.amt/total*100).toFixed(1)}%，本月目前共 ${recs.length} 笔消费`,
-    icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"
+  const total = recs.reduce((s,r)=>s+Number(r.amt||0),0);
+  const spentMap = {};
+  const countMap = {};
+  recs.forEach(r=>{
+    spentMap[r.cat]=(spentMap[r.cat]||0)+Number(r.amt||0);
+    countMap[r.cat]=(countMap[r.cat]||0)+1;
   });
 
-  // 有上月数据才做环比
-  if(prevTotal>0){
-    const d=(total-prevTotal)/prevTotal*100;
-    out.push({type:"trend",title:`本月支出较上月${d>=0?"增加":"减少"} ${Math.abs(d).toFixed(1)}%`,desc:`上月 ${money(prevTotal)} → 本月 ${money(total)}`,icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"});
+  const ranked = Object.entries(spentMap).sort((a,b)=>b[1]-a[1]);
+  const out = [];
+
+  // 只要有 1 笔消费，第一条洞察一定出现
+  if(ranked.length){
+    const [cat,amt]=ranked[0];
+    out.push({
+      type:"up",
+      title:`${cat}是本月最大支出，共 ${money0(amt)}`,
+      desc:`占本月总支出 ${(amt/total*100).toFixed(1)}%，当前共 ${recs.length} 笔消费`,
+      icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"
+    });
   }
 
-  // 预算洞察：有消费就检查
-  const over=CATS.filter(c=>BUDGET[c.key] && (spentMap[c.key]||0)>0)
-    .sort((a,b)=>(spentMap[b.key]/BUDGET[b.key])-(spentMap[a.key]/BUDGET[a.key]));
-  if(over.length){
-    const o=over[0], ratio=(spentMap[o.key]||0)/BUDGET[o.key]*100;
+  // 第二条：当前平均单笔，1笔也可计算
+  out.push({
+    type:"idea",
+    title:`本月平均每笔 ${money(total/recs.length)}`,
+    desc:`目前累计支出 ${money(total)}，共 ${recs.length} 笔`,
+    icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"
+  });
+
+  // 第三条：预算使用情况
+  const budgetRank = ranked
+    .filter(([cat])=>Number(BUDGET[cat]||0)>0)
+    .map(([cat,amt])=>({cat,amt,limit:Number(BUDGET[cat]),ratio:amt/Number(BUDGET[cat])}))
+    .sort((a,b)=>b.ratio-a.ratio);
+  if(budgetRank.length){
+    const b=budgetRank[0];
     out.push({
       type:"tip",
-      title:`${o.key}预算已使用 ${ratio.toFixed(1)}%`,
-      desc:(spentMap[o.key]||0)>BUDGET[o.key]?`已超出 ${money0((spentMap[o.key]||0)-BUDGET[o.key])}`:`距该分类预算还剩 ${money0(BUDGET[o.key]-(spentMap[o.key]||0))}`,
+      title:`${b.cat}预算已使用 ${(b.ratio*100).toFixed(1)}%`,
+      desc:b.amt>b.limit ? `已超出 ${money0(b.amt-b.limit)}` : `距该分类预算还剩 ${money0(b.limit-b.amt)}`,
       icon:"<circle cx='12' cy='12' r='9'/><path d='M12 8v5M12 16.5h.01'/>"
     });
   }
 
-  // 2笔以上就给频率/均笔洞察
-  if(recs.length>=2){
-    const freqMap={}; recs.forEach(r=>freqMap[r.cat]=(freqMap[r.cat]||0)+1);
-    const freqTop=Object.keys(freqMap).sort((a,b)=>freqMap[b]-freqMap[a])[0];
-    const avgPer=total/recs.length;
+  // 第四条：消费频率
+  const freq = Object.entries(countMap).sort((a,b)=>b[1]-a[1])[0];
+  if(freq && recs.length>=2){
     out.push({
-      type:"idea",
-      title:`本月平均每笔 ${money(avgPer)}`,
-      desc:freqTop?`${freqTop}出现 ${freqMap[freqTop]} 笔，是目前消费频率最高的分类`:`本月共 ${recs.length} 笔消费`,
-      icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"
+      type:"trend",
+      title:`${freq[0]}消费频率最高，共 ${freq[1]} 笔`,
+      desc:`占当前消费笔数 ${(freq[1]/recs.length*100).toFixed(1)}%`,
+      icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"
     });
   }
 
-  // 有明显大额就提示
-  const avgPer=total/recs.length;
-  const big=[...recs].sort((a,b)=>b.amt-a.amt)[0];
-  if(big && recs.length>=2 && big.amt>=Math.max(200,avgPer*1.5)){
-    out.push({type:"up",title:`当前最大单笔：${big.note||big.cat} ${money(big.amt)}`,desc:`占本月总支出 ${(big.amt/total*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
+  // 第五条：最大单笔
+  const big=[...recs].sort((a,b)=>Number(b.amt)-Number(a.amt))[0];
+  if(big && recs.length>=2){
+    out.push({
+      type:"up",
+      title:`最大单笔：${big.note||big.cat} ${money(Number(big.amt))}`,
+      desc:`占本月总支出 ${(Number(big.amt)/total*100).toFixed(1)}%`,
+      icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"
+    });
   }
+
   return out.slice(0,5);
 }
+
 function renderInsights(m){
-  const box = $("insightList"); box.innerHTML="";
-  const list = buildInsights(m);
+  const box=document.getElementById("insightList");
+  if(!box) return;
+
+  const list=buildInsights(m);
+  box.innerHTML="";
+
   if(!list.length){
-    box.appendChild(el("div","insight",`<div class="i-text muted" style="color:var(--ink-3)">本月还没有足够的数据生成洞察，先记几笔吧。</div>`));
+    const div=document.createElement("div");
+    div.className="insight";
+    div.innerHTML=`<div class="i-text muted" style="color:var(--ink-3)">本月暂无消费记录，新增一笔后会立即生成洞察。</div>`;
+    box.appendChild(div);
     return;
   }
+
   list.forEach(it=>{
-    const div = el("div","insight");
-    div.innerHTML = `<div class="i-ico ${it.type}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg></div>
+    const div=document.createElement("div");
+    div.className="insight";
+    div.innerHTML=`<div class="i-ico ${it.type}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg></div>
       <div class="i-text"><b>${it.title}</b><div class="muted">${it.desc}</div></div>`;
     box.appendChild(div);
   });
@@ -1549,9 +1578,13 @@ function flashSave(msg, err){
 /* ============ 月份切换 ============ */
 function renderMonth(m){
   $("monthLabel").textContent = MONTH_LABEL(m);
-  renderKPI(m); renderCharts(m); renderLedger(m); renderBudget(m); renderInsights(m);
+  renderKPI(m);
+  renderCharts(m);
+  renderLedger(m);
+  renderBudget(m);
+  renderInsights(m);
 }
-function renderAll(){ renderMonth(state.month); renderInsights(state.month); }
+function renderAll(){ renderMonth(state.month); }
 
 /* ============ 事件绑定 ============ */
 $("prevMonth").onclick = ()=>{ state.month = prevMonth(state.month); renderAll(); };
@@ -1570,7 +1603,6 @@ document.querySelectorAll("[data-charttab]").forEach(b=>{
     renderCharts(state.month);
   };
 
-  renderInsights(state.month);
 });
 
 
