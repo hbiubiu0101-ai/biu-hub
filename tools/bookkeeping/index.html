@@ -1081,25 +1081,34 @@ function renderDonut(m){
       <div class="donut-svg-wrap">${(()=>{
         let acc=0;
         const cx=70,cy=70,r=50,sw=30,circ=2*Math.PI*r;
+        const labelItems=[];
         const arcs=by.map(x=>{
           const pct=x.amt/total, dash=pct*circ, gap=circ-dash;
           const start=acc; acc+=pct;
-          const mid=start+pct/2;
-          const angle=mid*2*Math.PI-Math.PI/2;
-          const label=pct>=0.01 ? `${(pct*100).toFixed(1)}%` : "";
-          let guide="";
-          if(label){
-            const x1=cx+Math.cos(angle)*66, y1=cy+Math.sin(angle)*66;
-            const x2=cx+Math.cos(angle)*76, y2=cy+Math.sin(angle)*76;
-            const right=Math.cos(angle)>=0;
-            const x3=x2+(right?11:-11);
-            const anchor=right?"start":"end";
-            const tx=x3+(right?2:-2);
-            guide=`<path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} L ${x3.toFixed(1)} ${y2.toFixed(1)}" class="donut-guide"></path><text x="${tx.toFixed(1)}" y="${y2.toFixed(1)}" class="donut-pct-out" text-anchor="${anchor}" dominant-baseline="middle">${label}</text>`;
-          }
-          return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>${guide}`;
+          const mid=start+pct/2, angle=mid*2*Math.PI-Math.PI/2;
+          const x1=cx+Math.cos(angle)*66, y1=cy+Math.sin(angle)*66;
+          labelItems.push({pct,angle,x1,y1,right:Math.cos(angle)>=0});
+          return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-start*circ}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
         }).join("");
-        return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
+        const makeSide=(right)=>{
+          const a=labelItems.filter(v=>v.right===right).sort((p,q)=>p.y1-q.y1);
+          const minY=12,maxY=128,gapY=12;
+          a.forEach((v,i)=>{
+            let y=Math.max(minY,Math.min(maxY,v.y1));
+            if(i && y-a[i-1].labelY<gapY) y=a[i-1].labelY+gapY;
+            v.labelY=y;
+          });
+          if(a.length && a[a.length-1].labelY>maxY){
+            const shift=a[a.length-1].labelY-maxY;
+            a.forEach(v=>v.labelY-=shift);
+          }
+          return a.map(v=>{
+            const x2=right?130:10, x3=right?137:3, tx=right?139:1;
+            return `<path d="M ${v.x1.toFixed(1)} ${v.y1.toFixed(1)} L ${x2} ${v.labelY.toFixed(1)} L ${x3} ${v.labelY.toFixed(1)}" class="donut-guide"></path><text x="${tx}" y="${v.labelY.toFixed(1)}" class="donut-pct-out" text-anchor="${right?"start":"end"}" dominant-baseline="middle">${(v.pct*100).toFixed(v.pct<0.01?2:1)}%</text>`;
+          }).join("");
+        };
+        const guides=makeSide(false)+makeSide(true);
+        return `<svg viewBox="0 0 140 140" aria-label="本月分类占比">${arcs}${guides}<circle cx="70" cy="70" r="34" fill="white"></circle><text x="70" y="66" class="donut-total" text-anchor="middle">${money0(total)}</text><text x="70" y="84" class="donut-sub" text-anchor="middle">总支出</text></svg>`;
       })()}</div>
       <div class="donut-legend-horizontal">${legend}</div>
     </div>`;
@@ -1171,44 +1180,60 @@ function renderBudget(m){
 
 /* ============ 智能洞察 ============ */
 function buildInsights(m){
-  const recs = monthRecords(m);
-  const out = [];
-  if(!recs.length) return out;
-  const total = sumBy(recs, r=>r.amt);
-  const by = catSummary(m).sort((a,b)=>b.amt-a.amt);
-  const prev = prevMonth(m), prevTotal = monthTotal(prev);
+  const recs=monthRecords(m);
+  if(!recs.length) return [];
+  const out=[];
+  const total=sumBy(recs,r=>r.amt);
+  const by=catSummary(m).filter(x=>x.amt>0).sort((a,b)=>b.amt-a.amt);
+  const prev=prevMonth(m), prevTotal=monthTotal(prev);
+  const spentMap={}; recs.forEach(r=>spentMap[r.cat]=(spentMap[r.cat]||0)+r.amt);
 
-  // 1. 最大支出分类
-  const top = by[0];
-  out.push({type:"up", title:`${top.key}是本月最大支出，共 ${money0(top.amt)}`, desc:`占本月总支出 ${(top.amt/total*100).toFixed(1)}%`, icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
+  // 有 1 笔就立即给出基础洞察
+  const top=by[0];
+  if(top) out.push({
+    type:"up",
+    title:`${top.key}是本月最大支出，共 ${money0(top.amt)}`,
+    desc:`占本月总支出 ${(top.amt/total*100).toFixed(1)}%，本月目前共 ${recs.length} 笔消费`,
+    icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"
+  });
 
-  // 2. 环比
+  // 有上月数据才做环比
   if(prevTotal>0){
-    const d = (total-prevTotal)/prevTotal*100;
-    out.push({type:"trend", title:`本月支出较上月${d>=0?"增加":"减少"} ${Math.abs(d).toFixed(1)}%`, desc:`上月 ${money(prevTotal)} → 本月 ${money(total)}`, icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"});
+    const d=(total-prevTotal)/prevTotal*100;
+    out.push({type:"trend",title:`本月支出较上月${d>=0?"增加":"减少"} ${Math.abs(d).toFixed(1)}%`,desc:`上月 ${money(prevTotal)} → 本月 ${money(total)}`,icon:"<path d='M3 17l6-6 4 4 7-8'/><path d='M17 7h3v3'/>"});
   }
 
-  // 3. 超预算预警
-  const spentMap={}; recs.forEach(r=>{spentMap[r.cat]=(spentMap[r.cat]||0)+r.amt;});
-  const over = CATS.filter(c=>BUDGET[c.key] && (spentMap[c.key]||0)/BUDGET[c.key]>=0.85)
+  // 预算洞察：有消费就检查
+  const over=CATS.filter(c=>BUDGET[c.key] && (spentMap[c.key]||0)>0)
     .sort((a,b)=>(spentMap[b.key]/BUDGET[b.key])-(spentMap[a.key]/BUDGET[a.key]));
   if(over.length){
-    const o = over[0];
-    out.push({type:"tip", title:`${o.key}预算进度已达 ${Math.round((spentMap[o.key]||0)/BUDGET[o.key]*100)}%`, desc: (spentMap[o.key]||0)>BUDGET[o.key] ? `已超出 ${money0((spentMap[o.key]||0)-BUDGET[o.key])}` : `距上限还剩 ${money0(BUDGET[o.key]-(spentMap[o.key]||0))}`, icon:"<circle cx='12' cy='12' r='9'/><path d='M12 8v5M12 16.5h.01'/>"});
+    const o=over[0], ratio=(spentMap[o.key]||0)/BUDGET[o.key]*100;
+    out.push({
+      type:"tip",
+      title:`${o.key}预算已使用 ${ratio.toFixed(1)}%`,
+      desc:(spentMap[o.key]||0)>BUDGET[o.key]?`已超出 ${money0((spentMap[o.key]||0)-BUDGET[o.key])}`:`距该分类预算还剩 ${money0(BUDGET[o.key]-(spentMap[o.key]||0))}`,
+      icon:"<circle cx='12' cy='12' r='9'/><path d='M12 8v5M12 16.5h.01'/>"
+    });
   }
 
-  // 4. 高频分类
-  const freqMap={}; recs.forEach(r=>{freqMap[r.cat]=(freqMap[r.cat]||0)+1;});
-  const freqTop = Object.keys(freqMap).sort((a,b)=>freqMap[b]-freqMap[a])[0];
-  if(freqTop && freqMap[freqTop]>=3){
-    out.push({type:"idea", title:`${freqTop}消费了 ${freqMap[freqTop]} 笔，频率最高`, desc:"可考虑设置单笔预算或集中采购", icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"});
+  // 2笔以上就给频率/均笔洞察
+  if(recs.length>=2){
+    const freqMap={}; recs.forEach(r=>freqMap[r.cat]=(freqMap[r.cat]||0)+1);
+    const freqTop=Object.keys(freqMap).sort((a,b)=>freqMap[b]-freqMap[a])[0];
+    const avgPer=total/recs.length;
+    out.push({
+      type:"idea",
+      title:`本月平均每笔 ${money(avgPer)}`,
+      desc:freqTop?`${freqTop}出现 ${freqMap[freqTop]} 笔，是目前消费频率最高的分类`:`本月共 ${recs.length} 笔消费`,
+      icon:"<path d='M9 18h6M10 21h4M12 3a6 6 0 0 1 3.5 10.9c-.6.5-1 1.2-1 2h-5c0-.8-.4-1.5-1-2A6 6 0 0 1 12 3z'/>"
+    });
   }
 
-  // 5. 大额单笔
-  const avg = total/elapsedDays(m);
-  const big = recs.filter(r=>r.amt>avg*2 && r.amt>=200).sort((a,b)=>b.amt-a.amt)[0];
-  if(big){
-    out.push({type:"up", title:`单笔大额：${big.note||big.cat} ${money(big.amt)}`, desc:`${big.date.slice(5)} 的支出约为日均（${money(avg)}）的 ${(big.amt/avg).toFixed(1)} 倍`, icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
+  // 有明显大额就提示
+  const avgPer=total/recs.length;
+  const big=[...recs].sort((a,b)=>b.amt-a.amt)[0];
+  if(big && recs.length>=2 && big.amt>=Math.max(200,avgPer*1.5)){
+    out.push({type:"up",title:`当前最大单笔：${big.note||big.cat} ${money(big.amt)}`,desc:`占本月总支出 ${(big.amt/total*100).toFixed(1)}%`,icon:"<path d='M12 19V5M5 12l7-7 7 7'/>"});
   }
   return out.slice(0,5);
 }
@@ -1531,7 +1556,7 @@ function renderMonth(m){
   $("monthLabel").textContent = MONTH_LABEL(m);
   renderKPI(m); renderCharts(m); renderLedger(m); renderBudget(m); renderInsights(m);
 }
-function renderAll(){ renderMonth(state.month); }
+function renderAll(){ renderMonth(state.month); renderInsights(state.month); }
 
 /* ============ 事件绑定 ============ */
 $("prevMonth").onclick = ()=>{ state.month = prevMonth(state.month); renderAll(); };
