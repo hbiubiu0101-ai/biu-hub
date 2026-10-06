@@ -733,6 +733,68 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 }
 </style>
 
+
+<style id="ledger-header-lock-v3">
+.ledger-head{
+  position:relative !important;
+  display:flex !important;
+  align-items:center !important;
+  min-height:52px !important;
+}
+.ledger-head > h3{
+  flex:0 0 auto !important;
+  margin:0 !important;
+}
+.ledger-head-tools{
+  position:static !important;
+  display:flex !important;
+  align-items:center !important;
+  margin-left:auto !important;
+  width:auto !important;
+}
+.ledger-day-filter{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  width:190px !important;
+  box-sizing:border-box !important;
+  justify-content:center !important;
+}
+.ledger-date-clear{
+  position:absolute !important;
+  left:calc(50% + 105px) !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  width:48px !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+}
+.ledger-head-tools .hint{
+  margin-left:auto !important;
+  white-space:nowrap !important;
+}
+@media (max-width:760px){
+  .ledger-head{
+    min-height:92px !important;
+    padding-bottom:40px !important;
+  }
+  .ledger-day-filter{
+    top:auto !important;
+    bottom:9px !important;
+    left:50% !important;
+    transform:translateX(-50%) !important;
+    width:185px !important;
+  }
+  .ledger-date-clear{
+    top:auto !important;
+    bottom:9px !important;
+    left:calc(50% + 100px) !important;
+    transform:none !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -1489,6 +1551,15 @@ function renderInsights(m){
     });
   }
 
+  const activeDays=new Set(recs.map(r=>r.date).filter(Boolean)).size;
+  if(activeDays>0){
+    cards.push({
+      cls:"jade",
+      title:`本月已有 ${activeDays} 个消费日`,
+      desc:`共记录 ${recs.length} 笔，平均每个消费日 ${(recs.length/activeDays).toFixed(1)} 笔`
+    });
+  }
+
   const avg=total/recs.length;
   if(maxRec && maxRec.amt>=avg*1.5){
     cards.push({
@@ -1498,7 +1569,7 @@ function renderInsights(m){
     });
   }
 
-  box.innerHTML=cards.slice(0,5).map(c=>`
+  box.innerHTML=cards.slice(0,6).map(c=>`
     <div class="insight-result-card ${c.cls}">
       <span class="insight-result-dot"></span>
       <div><b>${escHtml(c.title)}</b><p>${escHtml(c.desc)}</p></div>
