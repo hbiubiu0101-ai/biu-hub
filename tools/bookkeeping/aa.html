@@ -443,59 +443,130 @@ const API_HEADERS = {
   "Authorization": "Bearer "+SUPABASE_KEY,
   "Content-Type": "application/json"
 };
-const DATA = {};
+const DATA = {"我的AA群组":{members:[ME],records:[]}};
 const GROUP_IDS = {};
 let cloudReady = false;
 
 async function api(path, options={}){
-  const res = await fetch(SUPABASE_URL+"/rest/v1/"+path, {
-    ...options,
-    headers:{...API_HEADERS, ...(options.headers||{})}
-  });
-  if(!res.ok) throw new Error(await res.text() || ("HTTP "+res.status));
-  if(res.status===204) return null;
+  const url=SUPABASE_URL+"/rest/v1/"+path;
+  let res;
+  try{
+    res=await fetch(url,{...options,headers:{...API_HEADERS,...(options.headers||{})}});
+  }catch(e){
+    throw new Error("网络请求失败："+(e.message||e));
+  }
   const txt=await res.text();
-  return txt ? JSON.parse(txt) : null;
+  if(!res.ok){
+    let msg=txt;
+    try{
+      const j=JSON.parse(txt);
+      msg=[j.code,j.message,j.details,j.hint].filter(Boolean).join(" · ");
+    }catch(_){}
+    throw new Error("HTTP "+res.status+" · "+(msg||"Supabase 请求失败"));
+  }
+  if(!txt) return null;
+  try{return JSON.parse(txt)}catch(_){return txt}
 }
 function makeClientId(){
   return (crypto.randomUUID ? crypto.randomUUID() : ("aa-"+Date.now()+"-"+Math.random().toString(16).slice(2)));
 }
 async function loadCloud(){
+  let gs, rs;
   try{
-    const gs=await api("aa_groups?select=id,group_name,members,updated_at&order=id.asc");
-    const rs=await api("aa_records?select=id,client_id,group_id,amount,payer,participants,note,payment,expense_date,expense_time,updated_at&order=expense_date.desc,updated_at.desc");
-    Object.keys(DATA).forEach(k=>delete DATA[k]);
-    Object.keys(GROUP_IDS).forEach(k=>delete GROUP_IDS[k]);
-    (gs||[]).forEach(g=>{
-      DATA[g.group_name]={members:Array.isArray(g.members)&&g.members.length?g.members:[ME], records:[]};
-      GROUP_IDS[g.group_name]=g.id;
-    });
-    (rs||[]).forEach(r=>{
-      const name=Object.keys(GROUP_IDS).find(k=>GROUP_IDS[k]===r.group_id);
-      if(!name || !DATA[name]) return;
-      DATA[name].records.push({
-        _id:r.id, client_id:r.client_id, date:r.expense_date, time:r.expense_time||"",
-        payer:r.payer, amount:Number(r.amount)||0,
-        parts:Array.isArray(r.participants)?r.participants:[],
-        note:r.note||"", pay:r.payment||""
-      });
-    });
-    if(!Object.keys(DATA).length){
-      const created=await api("aa_groups",{
-        method:"POST",
-        headers:{"Prefer":"return=representation"},
-        body:JSON.stringify({group_name:"我的AA群组",members:[ME]})
-      });
-      const g=created[0];
-      DATA[g.group_name]={members:[ME],records:[]};
-      GROUP_IDS[g.group_name]=g.id;
+    gs=await api("aa_groups?select=id,group_name,members,updated_at&order=id.asc");
+  }catch(e){
+    console.error("aa_groups load:",e);
+    showCloudError("群组读取失败",e);
+    return;
+  }
+  try{
+    rs=await api("aa_records?select=id,client_id,group_id,amount,payer,participants,note,payment,expense_date,expense_time,updated_at&order=expense_date.desc,updated_at.desc");
+  }catch(e){
+    console.error("aa_records load:",e);
+    showCloudError("流水读取失败",e);
+    return;
+  }
+
+  try{
+    if(!Array.isArray(gs)) gs=[];
+    if(!Array.isArray(rs)) rs=[];
+
+    // 首次使用：创建默认群组。创建失败时保留本地最低可用状态。
+    if(gs.length===0){
+      try{
+        const created=await api("aa_groups",{
+          method:"POST",
+          headers:{"Prefer":"return=representation"},
+          body:JSON.stringify({group_name:"我的AA群组",members:[ME],updated_at:new Date().toISOString()})
+        });
+        if(Array.isArray(created)&&created[0]) gs=[created[0]];
+      }catch(e){
+        console.error("bootstrap group:",e);
+        if(!Object.keys(DATA).length){
+          DATA["我的AA群组"]={members:[ME],records:[]};
+          state.group="我的AA群组";
+        }
+        renderAll();
+        showCloudError("默认群组创建失败",e);
+        return;
+      }
     }
-    if(!DATA[state.group]) state.group=Object.keys(DATA)[0];
+
+    const nextData={}, nextIds={};
+    gs.forEach(g=>{
+      const name=(g.group_name||"").trim();
+      if(!name) return;
+      let mem=Array.isArray(g.members)?g.members.filter(Boolean):[];
+      if(!mem.includes(ME)) mem=[ME,...mem];
+      if(!mem.length) mem=[ME];
+      nextData[name]={members:[...new Set(mem)],records:[]};
+      nextIds[name]=g.id;
+    });
+
+    const idToName={};
+    Object.keys(nextIds).forEach(name=>idToName[String(nextIds[name])]=name);
+    rs.forEach(r=>{
+      const name=idToName[String(r.group_id)];
+      if(!name||!nextData[name]) return;
+      nextData[name].records.push({
+        _id:r.id,client_id:r.client_id,date:r.expense_date||todayISO(),time:r.expense_time||"",
+        payer:r.payer||ME,amount:Number(r.amount)||0,
+        parts:Array.isArray(r.participants)&&r.participants.length?r.participants:[r.payer||ME],
+        note:r.note||"",pay:r.payment||""
+      });
+    });
+
+    // 只有完整读取成功后才替换页面数据，避免失败时把界面清空。
+    Object.keys(DATA).forEach(k=>delete DATA[k]);
+    Object.assign(DATA,nextData);
+    Object.keys(GROUP_IDS).forEach(k=>delete GROUP_IDS[k]);
+    Object.assign(GROUP_IDS,nextIds);
+
+    if(!DATA[state.group]) state.group=Object.keys(DATA)[0]||"";
     cloudReady=true;
+    clearCloudError();
     renderAll();
   }catch(e){
-    console.error(e);
-    flashSave("云端数据加载失败", true);
+    console.error("cloud parse:",e);
+    showCloudError("云端数据处理失败",e);
+  }
+}
+
+function showCloudError(prefix,e){
+  const msg=prefix+"："+(e&&e.message?e.message:String(e||"未知错误"));
+  const btn=$("saveBtn");
+  if(btn){
+    btn.textContent=msg.length>58?msg.slice(0,58)+"…":msg;
+    btn.style.background="var(--red)";
+    btn.title=msg;
+  }
+}
+function clearCloudError(){
+  const btn=$("saveBtn");
+  if(btn && /失败|HTTP|网络请求/.test(btn.textContent)){
+    btn.textContent="保存这笔 AA 消费";
+    btn.style.background="";
+    btn.title="";
   }
 }
 async function saveGroupMembers(){
@@ -510,7 +581,7 @@ async function saveGroupMembers(){
 
 
 /* ============ 状态 ============ */
-const state = {group:"", pickedParts:null};
+const state = {group:"我的AA群组", pickedParts:null};
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => {const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n;};
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -998,8 +1069,9 @@ function renderAll(){
   renderCharts();
   updateSplitTip();
 }
+renderAll();
 loadCloud();
-if(window.echarts){ initCharts(); }
+if(window.echarts){ initCharts(); if(cloudReady) renderCharts(); }
 else{
   injectLib("https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js", ok=>{
     if(ok && window.echarts){ initCharts(); if(cloudReady) renderCharts(); }
