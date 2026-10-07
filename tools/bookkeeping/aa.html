@@ -436,35 +436,88 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <script>
 /* ============ 数据模型：群组 + 成员 + 记录 ============ */
 const ME = "我";
-const DATA = {
-  "周末出游": {
-    members: ["我","小红","阿杰"],
-    records: [
-      {date:"2026-10-03", payer:"我", amount:186, parts:["我","小红","阿杰"], note:"聚餐火锅", pay:"微信"},
-      {date:"2026-10-03", payer:"小红", amount:60, parts:["小红","阿杰"], note:"打车去景区", pay:"支付宝"},
-      {date:"2026-10-04", payer:"阿杰", amount:120, parts:["我","小红","阿杰"], note:"景点门票", pay:"微信"},
-      {date:"2026-10-05", payer:"我", amount:96, parts:["我","小红","阿杰"], note:"超市补给", pay:"支付宝"},
-      {date:"2026-10-06", payer:"阿杰", amount:45, parts:["我","小红","阿杰"], note:"奶茶", pay:"微信"}
-    ]
-  },
-  "合租小分队": {
-    members: ["我","阿杰"],
-    records: [
-      {date:"2026-10-01", payer:"我", amount:2800, parts:["我","阿杰"], note:"房租月供", pay:"银行卡"},
-      {date:"2026-10-05", payer:"阿杰", amount:132.8, parts:["我","阿杰"], note:"电费", pay:"支付宝"}
-    ]
-  }
+const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
+const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
+const API_HEADERS = {
+  "apikey": SUPABASE_KEY,
+  "Authorization": "Bearer "+SUPABASE_KEY,
+  "Content-Type": "application/json"
 };
+const DATA = {};
+const GROUP_IDS = {};
+let cloudReady = false;
+
+async function api(path, options={}){
+  const res = await fetch(SUPABASE_URL+"/rest/v1/"+path, {
+    ...options,
+    headers:{...API_HEADERS, ...(options.headers||{})}
+  });
+  if(!res.ok) throw new Error(await res.text() || ("HTTP "+res.status));
+  if(res.status===204) return null;
+  const txt=await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+function makeClientId(){
+  return (crypto.randomUUID ? crypto.randomUUID() : ("aa-"+Date.now()+"-"+Math.random().toString(16).slice(2)));
+}
+async function loadCloud(){
+  try{
+    const gs=await api("aa_groups?select=id,group_name,members,updated_at&order=id.asc");
+    const rs=await api("aa_records?select=id,client_id,group_id,amount,payer,participants,note,payment,expense_date,expense_time,updated_at&order=expense_date.desc,updated_at.desc");
+    Object.keys(DATA).forEach(k=>delete DATA[k]);
+    Object.keys(GROUP_IDS).forEach(k=>delete GROUP_IDS[k]);
+    (gs||[]).forEach(g=>{
+      DATA[g.group_name]={members:Array.isArray(g.members)&&g.members.length?g.members:[ME], records:[]};
+      GROUP_IDS[g.group_name]=g.id;
+    });
+    (rs||[]).forEach(r=>{
+      const name=Object.keys(GROUP_IDS).find(k=>GROUP_IDS[k]===r.group_id);
+      if(!name || !DATA[name]) return;
+      DATA[name].records.push({
+        _id:r.id, client_id:r.client_id, date:r.expense_date, time:r.expense_time||"",
+        payer:r.payer, amount:Number(r.amount)||0,
+        parts:Array.isArray(r.participants)?r.participants:[],
+        note:r.note||"", pay:r.payment||""
+      });
+    });
+    if(!Object.keys(DATA).length){
+      const created=await api("aa_groups",{
+        method:"POST",
+        headers:{"Prefer":"return=representation"},
+        body:JSON.stringify({group_name:"我的AA群组",members:[ME]})
+      });
+      const g=created[0];
+      DATA[g.group_name]={members:[ME],records:[]};
+      GROUP_IDS[g.group_name]=g.id;
+    }
+    if(!DATA[state.group]) state.group=Object.keys(DATA)[0];
+    cloudReady=true;
+    renderAll();
+  }catch(e){
+    console.error(e);
+    flashSave("云端数据加载失败", true);
+  }
+}
+async function saveGroupMembers(){
+  const gid=GROUP_IDS[state.group];
+  if(!gid) return;
+  await api("aa_groups?id=eq."+encodeURIComponent(gid),{
+    method:"PATCH",
+    headers:{"Prefer":"return=minimal"},
+    body:JSON.stringify({members:members(),updated_at:new Date().toISOString()})
+  });
+}
+
 
 /* ============ 状态 ============ */
-const state = {group:"周末出游", pickedParts:null};
+const state = {group:"", pickedParts:null};
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => {const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n;};
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money = n => "¥"+n.toLocaleString("zh-CN",{minimumFractionDigits:2, maximumFractionDigits:2});
 const money0 = n => "¥"+n.toLocaleString("zh-CN",{maximumFractionDigits:0});
 const todayISO = ()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
-const group = () => DATA[state.group];
+const group = () => DATA[state.group] || {members:[ME],records:[]};
 const members = () => group().members;
 const records = () => group().records.slice().sort((a,b)=>b.date.localeCompare(a.date));
 const AVATAR_COLORS = ["#1B6B53","#3E6E8F","#C96F2B","#B4482E","#8A5A9E","#5A7D3E","#D05A6E","#2F6F7A"];
@@ -509,12 +562,19 @@ function renderGroupTabs(){
     box.appendChild(b);
   });
   const add=el("button","group-add","+"); add.title="新建群组";
-  add.onclick=()=>{
+  add.onclick=async()=>{
     const name=prompt("新群组名称：");
-    if(name && name.trim() && !DATA[name.trim()]){
-      DATA[name.trim()]={members:[ME], records:[]};
-      state.group=name.trim(); renderAll();
-    }else if(name && DATA[name.trim()]){ toast("群组已存在"); }
+    const n=name&&name.trim();
+    if(!n) return;
+    if(DATA[n]){ toast("群组已存在"); return; }
+    try{
+      const rows=await api("aa_groups",{
+        method:"POST",headers:{"Prefer":"return=representation"},
+        body:JSON.stringify({group_name:n,members:[ME]})
+      });
+      DATA[n]={members:[ME],records:[]}; GROUP_IDS[n]=rows[0].id;
+      state.group=n; state.pickedParts=null; renderAll();
+    }catch(e){ console.error(e); toast("新建群组失败"); }
   };
   box.appendChild(add);
 }
@@ -598,11 +658,12 @@ function renderLedger(){
     tr.appendChild(el("td","amt num", money(r.amount)));
     const td=el("td"); td.style.textAlign="center";
     const btn=el("button","del-btn","✕"); btn.title="删除这笔";
-    btn.onclick=()=>{
-      if(confirm(`删除这笔 ${money(r.amount)} 的 ${r.note||"消费"}？`)){
+    btn.onclick=async()=>{
+      try{
+        if(r._id) await api("aa_records?id=eq."+encodeURIComponent(r._id),{method:"DELETE",headers:{"Prefer":"return=minimal"}});
         group().records=group().records.filter(x=>x!==r);
         renderAll();
-      }
+      }catch(e){ console.error(e); toast("删除失败"); }
     };
     td.appendChild(btn); tr.appendChild(td);
     body.appendChild(tr);
@@ -648,29 +709,35 @@ function updateSplitTip(){
     tip.textContent = "仅付款人承担，不计入他人分摊";
   }
 }
-function saveRecord(){
+async function saveRecord(){
   const amt=parseFloat($("fAmount").value);
   if(!amt||amt<=0){ $("fAmount").focus(); flashSave("请输入有效金额", true); return; }
+  if(!GROUP_IDS[state.group]){ flashSave("群组尚未同步", true); return; }
   const payer=$("fPayer").value;
   const split=$("fSplit").value;
-  let parts;
-  if(split==="payer"){ parts=[payer]; }
-  else{
-    parts = pickedParts && pickedParts.length ? pickedParts : [payer];
-  }
+  const parts = split==="payer" ? [payer] : (pickedParts&&pickedParts.length ? pickedParts.slice() : [payer]);
   const rec={
-    date:$("fDate").value||todayISO(),
-    payer,
+    client_id:makeClientId(),
+    group_id:GROUP_IDS[state.group],
     amount:Math.round(amt*100)/100,
-    parts,
+    payer,
+    participants:parts,
     note:$("fNote").value.trim()||"AA消费",
-    pay:$("fPay").value
+    payment:$("fPay").value,
+    expense_date:$("fDate").value||todayISO(),
+    expense_time:new Date().toTimeString().slice(0,8),
+    updated_at:new Date().toISOString()
   };
-  group().records.push(rec);
-  $("fAmount").value=""; $("fNote").value="";
-  pickedParts=null;
-  renderAll();
-  flashSave("已记入「"+state.group+"」，分摊已自动计算");
+  try{
+    const rows=await api("aa_records",{
+      method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify(rec)
+    });
+    const r=rows[0];
+    group().records.push({_id:r.id,client_id:r.client_id,date:r.expense_date,time:r.expense_time||"",payer:r.payer,amount:Number(r.amount),parts:r.participants||[],note:r.note||"",pay:r.payment||""});
+    $("fAmount").value=""; $("fNote").value=""; pickedParts=null;
+    renderAll();
+    flashSave("已保存到云端");
+  }catch(e){ console.error(e); flashSave("保存失败，请重试", true); }
 }
 function flashSave(msg, err){
   const btn=$("saveBtn");
@@ -691,25 +758,31 @@ function renderMembers(){
       <div class="m-num">垫付 ${money0(spent)}</div>`;
     if(m!==ME){
       const del=el("button","m-del","✕"); del.title="移除成员";
-      del.onclick=()=>{
+      del.onclick=async()=>{
         const hasRecord=group().records.some(r=>r.payer===m||(r.parts||[]).includes(m));
         if(hasRecord){ toast("该成员已有消费记录，无法直接移除"); return; }
-        group().members=members().filter(x=>x!==m);
-        state.pickedParts=null; renderAll();
+        const oldMembers=members().slice();
+        DATA[state.group].members=oldMembers.filter(x=>x!==m);
+        try{ await saveGroupMembers(); state.pickedParts=null; renderAll(); }
+        catch(e){ DATA[state.group].members=oldMembers; console.error(e); toast("成员删除失败"); }
       };
       row.appendChild(del);
     }
     box.appendChild(row);
   });
 }
-$("addMemberBtn").onclick=()=>{
+$("addMemberBtn").onclick=async()=>{
   const input=$("newMember");
   const name=input.value.trim();
   if(!name){ input.focus(); return; }
   if(members().includes(name)){ toast("成员已存在"); return; }
-  group().members.push(name);
-  input.value="";
-  renderAll();
+  const oldMembers=members().slice();
+  DATA[state.group].members=[...oldMembers,name];
+  try{
+    await saveGroupMembers(); input.value=""; renderAll();
+  }catch(e){
+    DATA[state.group].members=oldMembers; console.error(e); toast("成员添加失败");
+  }
 };
 $("newMember").addEventListener("keydown", e=>{ if(e.key==="Enter") $("addMemberBtn").click(); });
 
@@ -925,11 +998,11 @@ function renderAll(){
   renderCharts();
   updateSplitTip();
 }
-renderAll();
-if(window.echarts){ initCharts(); renderCharts(); }
+loadCloud();
+if(window.echarts){ initCharts(); }
 else{
   injectLib("https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js", ok=>{
-    if(ok && window.echarts){ initCharts(); renderCharts(); }
+    if(ok && window.echarts){ initCharts(); if(cloudReady) renderCharts(); }
     else{
       const ph='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-3);font-size:12px;text-align:center;padding:20px">图表组件加载失败（网络原因），<br>其余功能不受影响</div>';
       $("trendChart").innerHTML=ph;
@@ -937,6 +1010,13 @@ else{
     }
   });
 }
+
+
+/* ============ 云端同步 ============ */
+window.addEventListener("focus", ()=>{ if(cloudReady) loadCloud(); });
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible" && cloudReady) loadCloud(); });
+setInterval(()=>{ if(document.visibilityState==="visible" && cloudReady) loadCloud(); }, 5000);
+
 </script>
 </body>
 </html>
