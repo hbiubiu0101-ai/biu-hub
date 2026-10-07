@@ -35,7 +35,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .brand h1{font-size:19px;font-weight:900}
 .brand p{font-size:12px;color:var(--ink-2);margin-top:1px}
 .group-tabs{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px;overflow-x:auto;max-width:100%}
-.app-switch-btn{min-width:210px;height:58px;padding:7px 12px;border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--ink);text-decoration:none;margin-left:18px;white-space:nowrap;transition:border-color .15s,background .15s,box-shadow .15s;box-sizing:border-box}
+.app-switch-btn{min-width:248px;height:64px;padding:7px 12px;border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--ink);text-decoration:none;margin-left:22px;white-space:nowrap;transition:border-color .15s,background .15s,box-shadow .15s;box-sizing:border-box}
 .app-switch-btn:hover{border-color:var(--jade);background:var(--panel);box-shadow:0 3px 12px rgba(30,70,55,.08)}
 .app-switch-btn .switch-mark{width:38px;height:38px;border-radius:9px;background:var(--jade);display:grid;place-items:center;color:#fff;flex:none}
 .app-switch-btn .switch-mark svg{width:20px;height:20px}
@@ -116,6 +116,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .save-btn{grid-column:1/-1;border:0;border-radius:7px;background:var(--jade);color:#fff;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:2px}
 .save-btn:hover{background:var(--jade-deep)}
 .save-btn:active{transform:translateY(1px)}
+.part-share{margin-left:4px;font-size:10.5px;font-weight:800}
 .split-tip{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.5}
 
 /* 成员管理 */
@@ -288,7 +289,6 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
               <select id="fSplit">
                 <option value="equal">平均分摊（AA）</option>
                 <option value="payer">仅付款人承担</option>
-                <option value="custom">自定义比例</option>
               </select>
             </div>
             <div class="field full">
@@ -366,28 +366,27 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <script>
 /* ============ 数据模型：群组 + 成员 + 记录 ============ */
 const ME = "我";
-const DATA = {
-  "周末出游": {
-    members: ["我","小红","阿杰"],
-    records: [
-      {date:"2026-10-03", payer:"我", amount:186, parts:["我","小红","阿杰"], note:"聚餐火锅", pay:"微信"},
-      {date:"2026-10-03", payer:"小红", amount:60, parts:["小红","阿杰"], note:"打车去景区", pay:"支付宝"},
-      {date:"2026-10-04", payer:"阿杰", amount:120, parts:["我","小红","阿杰"], note:"景点门票", pay:"微信"},
-      {date:"2026-10-05", payer:"我", amount:96, parts:["我","小红","阿杰"], note:"超市补给", pay:"支付宝"},
-      {date:"2026-10-06", payer:"阿杰", amount:45, parts:["我","小红","阿杰"], note:"奶茶", pay:"微信"}
-    ]
-  },
-  "合租小分队": {
-    members: ["我","阿杰"],
-    records: [
-      {date:"2026-10-01", payer:"我", amount:2800, parts:["我","阿杰"], note:"房租月供", pay:"银行卡"},
-      {date:"2026-10-05", payer:"阿杰", amount:132.8, parts:["我","阿杰"], note:"电费", pay:"支付宝"}
-    ]
-  }
+const AA_STORAGE_KEY = "biu_aa_bookkeeping_v1";
+const DEFAULT_DATA = {
+  "周末出游": {members:["我","小红","阿杰"], records:[]},
+  "合租小分队": {members:["我","阿杰"], records:[]}
 };
+function loadAAData(){
+  try{
+    const raw=localStorage.getItem(AA_STORAGE_KEY);
+    if(!raw) return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    const parsed=JSON.parse(raw);
+    return parsed && typeof parsed==="object" && Object.keys(parsed).length ? parsed : JSON.parse(JSON.stringify(DEFAULT_DATA));
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+let DATA = loadAAData();
+function persistAA(){
+  try{ localStorage.setItem(AA_STORAGE_KEY, JSON.stringify(DATA)); return true; }
+  catch(e){ toast("保存失败，请检查浏览器存储权限"); return false; }
+}
 
 /* ============ 状态 ============ */
-const state = {group:"周末出游", pickedParts:null};
+const state = {group:Object.keys(DATA)[0] || "周末出游"};
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => {const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n;};
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -435,7 +434,7 @@ function renderGroupTabs(){
   const box=$("groupTabs"); box.innerHTML="";
   Object.keys(DATA).forEach(g=>{
     const b=el("button","group-tab"+(g===state.group?" active":""), esc(g));
-    b.onclick=()=>{ state.group=g; state.pickedParts=null; renderAll(); };
+    b.onclick=()=>{ state.group=g; pickedParts=null; renderAll(); };
     box.appendChild(b);
   });
   const add=el("button","group-add","+"); add.title="新建群组";
@@ -443,7 +442,7 @@ function renderGroupTabs(){
     const name=prompt("新群组名称：");
     if(name && name.trim() && !DATA[name.trim()]){
       DATA[name.trim()]={members:[ME], records:[]};
-      state.group=name.trim(); renderAll();
+      state.group=name.trim(); persistAA(); renderAll();
     }else if(name && DATA[name.trim()]){ toast("群组已存在"); }
   };
   box.appendChild(add);
@@ -531,7 +530,7 @@ function renderLedger(){
     btn.onclick=()=>{
       if(confirm(`删除这笔 ${money(r.amount)} 的 ${r.note||"消费"}？`)){
         group().records=group().records.filter(x=>x!==r);
-        renderAll();
+        persistAA(); renderAll();
       }
     };
     td.appendChild(btn); tr.appendChild(td);
@@ -542,22 +541,30 @@ function renderLedger(){
 /* ============ 表单：记一笔 ============ */
 let pickedParts=null;
 function renderPayer(){
-  const sel=$("fPayer"); sel.innerHTML="";
+  const sel=$("fPayer");
+  const previous=sel.value;
+  sel.innerHTML="";
   members().forEach(m=>{
     const o=document.createElement("option");
     o.value=m; o.textContent = m===ME ? m+"（我）" : m;
-    o.selected = m===ME;
     sel.appendChild(o);
   });
+  if(previous && members().includes(previous)) sel.value=previous;
+  else if(members().includes(ME)) sel.value=ME;
 }
 function renderParts(){
   const box=$("partsPicker"); box.innerHTML="";
   const mems=members();
   pickedParts = pickedParts ? pickedParts.filter(m=>mems.includes(m)) : mems.slice();
   if(!pickedParts.length) pickedParts=mems.slice();
+  const amt=parseFloat($("fAmount").value)||0;
+  const selectedCount=Math.max(1,pickedParts.length);
+  const per=amt/selectedCount;
   mems.forEach(m=>{
-    const c=el("button","part-chip"+(pickedParts.includes(m)?" active":""),
-      `<i style="background:${colorOf(m)}"></i>${esc(m===ME?m+"（我）":m)}`);
+    const active=pickedParts.includes(m);
+    const shareText=active && amt>0 ? ` <b class="part-share">${money(per)}</b>` : "";
+    const c=el("button","part-chip"+(active?" active":""),
+      `<i style="background:${colorOf(m)}"></i>${esc(m===ME?m+"（我）":m)}${shareText}`);
     c.onclick=()=>{
       if(pickedParts.includes(m)) pickedParts=pickedParts.filter(x=>x!==m);
       else pickedParts.push(m);
@@ -597,6 +604,7 @@ function saveRecord(){
     pay:$("fPay").value
   };
   group().records.push(rec);
+  persistAA();
   $("fAmount").value=""; $("fNote").value="";
   pickedParts=null;
   renderAll();
@@ -625,7 +633,7 @@ function renderMembers(){
         const hasRecord=group().records.some(r=>r.payer===m||(r.parts||[]).includes(m));
         if(hasRecord){ toast("该成员已有消费记录，无法直接移除"); return; }
         group().members=members().filter(x=>x!==m);
-        state.pickedParts=null; renderAll();
+        pickedParts=null; renderAll();
       };
       row.appendChild(del);
     }
@@ -837,7 +845,7 @@ function toast(msg){
 $("saveBtn").onclick=saveRecord;
 $("fAmount").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
 $("fNote").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
-$("fAmount").addEventListener("input", updateSplitTip);
+$("fAmount").addEventListener("input", ()=>{ renderParts(); updateSplitTip(); });
 $("fSplit").addEventListener("change", ()=>{ renderParts(); updateSplitTip(); });
 $("fPayer").addEventListener("change", updateSplitTip);
 $("fDate").value=todayISO();
