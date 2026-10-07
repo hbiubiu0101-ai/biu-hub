@@ -236,6 +236,31 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 }
 </style>
 
+
+<style id="biu-aa-ledger-member-bottom-align">
+@media (min-width:1081px){
+  /* 只修正群组流水底部：顶部不动，底部与右侧群组成员底部齐平 */
+  .main-col > .panel:nth-child(2){
+    height:677px !important;
+    min-height:677px !important;
+    max-height:677px !important;
+    overflow:hidden !important;
+  }
+  .main-col > .panel:nth-child(2) .panel-body{
+    height:calc(677px - 49px) !important;
+    overflow-y:auto !important;
+  }
+}
+@media(max-width:1080px){
+  .main-col > .panel:nth-child(2){
+    height:auto !important;min-height:0 !important;max-height:none !important;overflow:visible !important;
+  }
+  .main-col > .panel:nth-child(2) .panel-body{
+    height:auto !important;overflow:visible !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
