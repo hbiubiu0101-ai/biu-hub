@@ -265,49 +265,41 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-ledger-columns-v3">
-/* 桌面端：六列严格对应 */
-.ledger{width:100%;table-layout:fixed}
+
+
+
+<style id="biu-aa-ledger-columns-v4">
+/* AA流水：给参与人/日期时间留足空间，并提供独立左右滚动条 */
+.main-col .panel-body[style*="padding:0"]{
+  overflow-x:auto!important;
+  overflow-y:visible!important;
+  scrollbar-gutter:stable;
+  padding-bottom:6px!important;
+}
+.ledger{
+  width:100%;
+  min-width:860px;
+  table-layout:fixed;
+}
 .ledger col:nth-child(1){width:12%}
-.ledger col:nth-child(2){width:25%}
-.ledger col:nth-child(3){width:16%}
-.ledger col:nth-child(4){width:22%}
-.ledger col:nth-child(5){width:15%}
+.ledger col:nth-child(2){width:27%}
+.ledger col:nth-child(3){width:18%}
+.ledger col:nth-child(4){width:19%}
+.ledger col:nth-child(5){width:14%}
 .ledger col:nth-child(6){width:10%}
+.ledger th,.ledger td{padding-left:14px!important;padding-right:14px!important}
 .ledger th:nth-child(5),.ledger td:nth-child(5){text-align:right;white-space:nowrap}
 .ledger th:nth-child(6),.ledger td:nth-child(6){text-align:center;white-space:nowrap}
 .parts-cell{vertical-align:middle}
-.parts-line{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;margin-bottom:3px}
+.parts-line{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:6px}
 .parts-line:last-child{margin-bottom:0}
-.datetime-cell{white-space:nowrap}
+.datetime-cell{white-space:nowrap;padding-left:20px!important}
 .ledger .del-btn{position:static!important;margin:0 auto!important}
-
-/* 手机端：不再把六列硬挤进屏幕，表格自身横向滑动 */
 @media(max-width:700px){
-  .main-col .panel-body[style*="padding:0"]{
-    overflow-x:auto!important;
-    overflow-y:visible!important;
-    -webkit-overflow-scrolling:touch;
-  }
-  .ledger{
-    width:720px!important;
-    min-width:720px!important;
-    table-layout:fixed!important;
-  }
-  .ledger col:nth-child(1){width:90px!important}
-  .ledger col:nth-child(2){width:190px!important}
-  .ledger col:nth-child(3){width:120px!important}
-  .ledger col:nth-child(4){width:140px!important}
-  .ledger col:nth-child(5){width:110px!important}
-  .ledger col:nth-child(6){width:70px!important}
+  .main-col .panel-body[style*="padding:0"]{-webkit-overflow-scrolling:touch}
+  .ledger{width:860px!important;min-width:860px!important}
   .ledger th:last-child,.ledger td:last-child{
-    position:static!important;right:auto!important;
-    background:transparent!important;z-index:auto!important;
-  }
-  .ledger .del-btn{
-    position:static!important;
-    width:28px!important;height:28px!important;
-    margin:0 auto!important;
+    position:static!important;right:auto!important;background:transparent!important;z-index:auto!important;
   }
 }
 </style>
