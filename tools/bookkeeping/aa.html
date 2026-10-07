@@ -203,16 +203,22 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </style>
 
 
-<style id="biu-aa-bottom-align-fix">
+
+
+
+<style id="biu-aa-ledger-hard-height">
 @media (min-width: 901px){
-  /* AA 下半区：左右列底部齐平 */
-  .main-grid{
-    align-items:stretch !important;
-  }
-  /* 左侧群组流水卡片不要继续撑出大片空白 */
+  /* 桌面端强制固定群组流水卡片高度，不再跟明细条数变化 */
   #ledgerCard, .ledger-card{
-    height:auto !important;
-    min-height:0 !important;
+    height: 390px !important;
+    min-height: 390px !important;
+    max-height: 390px !important;
+    overflow: hidden !important;
+  }
+  #ledgerCard .table-wrap, .ledger-card .table-wrap,
+  #ledgerCard .ledger-list, .ledger-card .ledger-list{
+    max-height: 330px !important;
+    overflow-y: auto !important;
   }
 }
 </style>
