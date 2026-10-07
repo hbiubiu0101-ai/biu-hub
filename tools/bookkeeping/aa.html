@@ -262,26 +262,52 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 </style>
 
 
-<style id="biu-aa-ledger-detail-fix">
+
+
+
+<style id="biu-aa-ledger-columns-v3">
+/* 桌面端：六列严格对应 */
+.ledger{width:100%;table-layout:fixed}
+.ledger col:nth-child(1){width:12%}
+.ledger col:nth-child(2){width:25%}
+.ledger col:nth-child(3){width:16%}
+.ledger col:nth-child(4){width:22%}
+.ledger col:nth-child(5){width:15%}
+.ledger col:nth-child(6){width:10%}
+.ledger th:nth-child(5),.ledger td:nth-child(5){text-align:right;white-space:nowrap}
+.ledger th:nth-child(6),.ledger td:nth-child(6){text-align:center;white-space:nowrap}
 .parts-cell{vertical-align:middle}
 .parts-line{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;margin-bottom:3px}
 .parts-line:last-child{margin-bottom:0}
 .datetime-cell{white-space:nowrap}
+.ledger .del-btn{position:static!important;margin:0 auto!important}
+
+/* 手机端：不再把六列硬挤进屏幕，表格自身横向滑动 */
 @media(max-width:700px){
-  /* 手机端明细保持表格列宽，允许横向滑动，避免删除 X 压住内容 */
-  .ledger-table-wrap,.table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
-  #ledgerTable{min-width:720px!important}
-  #ledgerTable th:last-child,#ledgerTable td:last-child{
-    position:sticky!important;right:0!important;
-    width:48px!important;min-width:48px!important;
-    background:var(--panel,#fff)!important;
-    z-index:3!important;text-align:center!important;
+  .main-col .panel-body[style*="padding:0"]{
+    overflow-x:auto!important;
+    overflow-y:visible!important;
+    -webkit-overflow-scrolling:touch;
   }
-  #ledgerTable .del-btn{
+  .ledger{
+    width:720px!important;
+    min-width:720px!important;
+    table-layout:fixed!important;
+  }
+  .ledger col:nth-child(1){width:90px!important}
+  .ledger col:nth-child(2){width:190px!important}
+  .ledger col:nth-child(3){width:120px!important}
+  .ledger col:nth-child(4){width:140px!important}
+  .ledger col:nth-child(5){width:110px!important}
+  .ledger col:nth-child(6){width:70px!important}
+  .ledger th:last-child,.ledger td:last-child{
+    position:static!important;right:auto!important;
+    background:transparent!important;z-index:auto!important;
+  }
+  .ledger .del-btn{
     position:static!important;
+    width:28px!important;height:28px!important;
     margin:0 auto!important;
-    width:26px!important;height:26px!important;
-    display:grid!important;place-items:center!important;
   }
 }
 </style>
@@ -353,7 +379,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
           <table class="ledger">
             <colgroup><col><col><col><col><col><col></colgroup>
             <thead>
-              <tr><th>日期</th><th>付款人</th><th>参与人</th><th>备注</th><th style="text-align:right">金额</th><th style="text-align:center">操作</th></tr>
+              <tr><th>付款人</th><th>参与人</th><th>日期时间</th><th>备注</th><th style="text-align:right">金额</th><th style="text-align:center">操作</th></tr>
             </thead>
             <tbody id="ledgerBody"></tbody>
           </table>
