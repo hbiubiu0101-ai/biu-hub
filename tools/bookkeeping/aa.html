@@ -280,87 +280,114 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-mobile-final">
-/* AA 流水：页面不横向溢出，只让流水卡片内部横向滚动 */
-html,body{max-width:100%;overflow-x:hidden}
-.ledger-scrollbox{
+
+
+
+
+
+
+<style id="biu-aa-consumer-scroll-framework">
+/* AA群组流水直接沿用消费智记的“卡片 + 内部滚动”框架 */
+.main-col > .panel:has(.ledger-scroll){
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.main-col > .panel:has(.ledger-scroll) .ledger-scroll{
   display:block!important;
   width:100%!important;
   max-width:100%!important;
   min-width:0!important;
-  overflow-x:scroll!important;
-  overflow-y:hidden!important;
-  -webkit-overflow-scrolling:touch;
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x pan-y!important;
   box-sizing:border-box!important;
-  scrollbar-width:auto;
+  scrollbar-width:auto!important;
   scrollbar-color:#9f988b #ece8df;
 }
-.ledger-scrollbox .ledger{
+.main-col > .panel:has(.ledger-scroll) table.ledger{
+  display:table!important;
   width:900px!important;
   min-width:900px!important;
   max-width:none!important;
   table-layout:fixed!important;
 }
-.ledger-scrollbox .ledger col:nth-child(1){width:110px!important}
-.ledger-scrollbox .ledger col:nth-child(2){width:240px!important}
-.ledger-scrollbox .ledger col:nth-child(3){width:150px!important}
-.ledger-scrollbox .ledger col:nth-child(4){width:190px!important}
-.ledger-scrollbox .ledger col:nth-child(5){width:130px!important}
-.ledger-scrollbox .ledger col:nth-child(6){width:80px!important}
-.ledger-scrollbox .ledger th,.ledger-scrollbox .ledger td{
-  padding-left:14px!important;padding-right:14px!important;
+.main-col > .panel:has(.ledger-scroll) table.ledger thead{display:table-header-group!important}
+.main-col > .panel:has(.ledger-scroll) table.ledger tbody{display:table-row-group!important}
+.main-col > .panel:has(.ledger-scroll) table.ledger tr{display:table-row!important}
+.main-col > .panel:has(.ledger-scroll) table.ledger th,
+.main-col > .panel:has(.ledger-scroll) table.ledger td{display:table-cell!important}
+.main-col > .panel:has(.ledger-scroll) .ledger col:nth-child(1){width:110px!important}
+.main-col > .panel:has(.ledger-scroll) .ledger col:nth-child(2){width:240px!important}
+.main-col > .panel:has(.ledger-scroll) .ledger col:nth-child(3){width:150px!important}
+.main-col > .panel:has(.ledger-scroll) .ledger col:nth-child(4){width:190px!important}
+.main-col > .panel:has(.ledger-scroll) .ledger col:nth-child(5){width:130px!important}
+.main-col > .panel:has(.ledger-scroll) .ledger col:nth-child(6){width:80px!important}
+.main-col > .panel:has(.ledger-scroll) .ledger th,
+.main-col > .panel:has(.ledger-scroll) .ledger td{
+  padding-left:14px!important;
+  padding-right:14px!important;
 }
-.ledger-scrollbox .parts-line{
-  display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:5px;
+.main-col > .panel:has(.ledger-scroll) .parts-line{
+  display:flex!important;
+  gap:8px!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  margin-bottom:5px!important;
 }
-.ledger-scrollbox .parts-line:last-child{margin-bottom:0}
-.ledger-scrollbox .datetime-cell{white-space:nowrap}
-.ledger-scrollbox .ledger th:nth-child(5),.ledger-scrollbox .ledger td:nth-child(5){
-  text-align:right;white-space:nowrap;
+.main-col > .panel:has(.ledger-scroll) .parts-line:last-child{margin-bottom:0!important}
+.main-col > .panel:has(.ledger-scroll) .datetime-cell{white-space:nowrap!important}
+.main-col > .panel:has(.ledger-scroll) .del-btn{
+  position:static!important;
+  margin:0 auto!important;
 }
-.ledger-scrollbox .ledger th:nth-child(6),.ledger-scrollbox .ledger td:nth-child(6){
-  text-align:center;white-space:nowrap;
+.main-col > .panel:has(.ledger-scroll) .ledger-scroll::-webkit-scrollbar{
+  width:14px!important;
+  height:16px!important;
 }
-.ledger-scrollbox .del-btn{position:static!important;margin:0 auto!important}
-.ledger-scrollbox::-webkit-scrollbar{height:16px!important}
-.ledger-scrollbox::-webkit-scrollbar-track{background:#ece8df!important;border-radius:10px}
-.ledger-scrollbox::-webkit-scrollbar-thumb{
-  background:#9f988b!important;border-radius:10px;border:3px solid #ece8df!important;
+.main-col > .panel:has(.ledger-scroll) .ledger-scroll::-webkit-scrollbar-track{
+  background:#ece8df!important;
+  border-radius:10px!important;
+}
+.main-col > .panel:has(.ledger-scroll) .ledger-scroll::-webkit-scrollbar-thumb{
+  background:#9f988b!important;
+  border-radius:10px!important;
+  border:3px solid #ece8df!important;
 }
 
 @media(max-width:700px){
-  .page,.wrap,.container,.shell,.layout,.content,.main,.main-col,.side-col{
-    min-width:0!important;
+  html,body{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
+  .main-col{width:100%!important;max-width:100%!important;min-width:0!important}
+  .main-col > .panel:has(.ledger-scroll){
+    width:100%!important;
     max-width:100%!important;
-    box-sizing:border-box!important;
+    min-width:0!important;
+    overflow:hidden!important;
   }
-  .main-col,.side-col{width:100%!important}
-  .main-col>.panel{width:100%!important;max-width:100%!important;min-width:0!important}
-  .ledger-scrollbox{width:100%!important;max-width:100%!important}
-}
-</style>
-
-
-<style id="biu-aa-mobile-card-scroll-final">
-@media(max-width:700px){
-  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
-  .main-col,.main-col>.panel{width:100%!important;max-width:100%!important;min-width:0!important}
-  .ledger-scrollbox{
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    overflow-x:auto!important;overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch!important;
-    touch-action:pan-x pan-y!important;
+  .main-col > .panel:has(.ledger-scroll) .ledger-scroll{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    overflow-x:auto!important;
+    overflow-y:auto!important;
   }
-  .ledger-scrollbox .ledger{
+  /* 强制取消AA旧手机端“表格展开/卡片化”规则 */
+  .main-col > .panel:has(.ledger-scroll) table.ledger{
     display:table!important;
-    width:900px!important;min-width:900px!important;max-width:none!important;
-    table-layout:fixed!important;
+    width:900px!important;
+    min-width:900px!important;
+    max-width:none!important;
   }
-  .ledger-scrollbox .ledger thead{display:table-header-group!important}
-  .ledger-scrollbox .ledger tbody{display:table-row-group!important}
-  .ledger-scrollbox .ledger tr{display:table-row!important}
-  .ledger-scrollbox .ledger th,.ledger-scrollbox .ledger td{display:table-cell!important}
-  .ledger-scrollbox::-webkit-scrollbar{height:16px!important;width:14px!important}
+  .main-col > .panel:has(.ledger-scroll) table.ledger thead{display:table-header-group!important}
+  .main-col > .panel:has(.ledger-scroll) table.ledger tbody{display:table-row-group!important}
+  .main-col > .panel:has(.ledger-scroll) table.ledger tr{display:table-row!important}
+  .main-col > .panel:has(.ledger-scroll) table.ledger th,
+  .main-col > .panel:has(.ledger-scroll) table.ledger td{
+    display:table-cell!important;
+    position:static!important;
+  }
 }
 </style>
 
@@ -427,7 +454,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <!-- 流水 -->
       <section class="panel">
         <div class="panel-head"><h3><span class="dot"></span>群组流水</h3><span class="hint">谁付的 · 谁参与 · 一清二楚</span></div>
-        <div class="panel-body ledger-scrollbox" style="padding:0">
+        <div class="panel-body ledger-scroll" style="padding:0">
           <table class="ledger">
             <colgroup><col><col><col><col><col><col></colgroup>
             <thead>
