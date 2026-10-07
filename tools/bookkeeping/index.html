@@ -826,6 +826,22 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 }
 </style>
 
+
+<style id="biu-bookkeeping-ledger-scroll">
+/* 消费明细：桌面和手机都允许横向查看完整列 */
+#ledgerWrap,.ledger-wrap,.table-wrap{
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+}
+#ledgerTable,.ledger-table{
+  min-width:760px;
+}
+@media(max-width:700px){
+  #ledgerTable,.ledger-table{min-width:760px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
