@@ -842,11 +842,18 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 
 
-<style id="biu-bookkeeping-x-only-fix">
-/* 只增加左右滚动；不改原来的高度、上下滚动、卡片布局 */
+
+
+
+<style id="biu-bookkeeping-10rows-final">
+/* 消费明细：固定约10条记录高度；超过10条上下滚动，同时保留左右滚动 */
 #ledgerWrap,.ledger-wrap,.table-wrap{
+  height:500px!important;
+  max-height:500px!important;
+  overflow-y:scroll!important;
   overflow-x:scroll!important;
   -webkit-overflow-scrolling:touch;
+  box-sizing:border-box!important;
   scrollbar-width:auto;
   scrollbar-color:#9f988b #ece8df;
 }
@@ -856,7 +863,8 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 #ledgerWrap::-webkit-scrollbar,
 .ledger-wrap::-webkit-scrollbar,
 .table-wrap::-webkit-scrollbar{
-  height:16px!important;
+  width:14px!important;
+  height:14px!important;
 }
 #ledgerWrap::-webkit-scrollbar-track,
 .ledger-wrap::-webkit-scrollbar-track,
