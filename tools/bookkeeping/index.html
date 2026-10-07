@@ -833,44 +833,41 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 
 
-<style id="biu-bookkeeping-visible-xscroll">
-/* 消费明细：卡片底部始终保留横向滚动条 */
+
+
+
+
+
+
+<style id="biu-bookkeeping-mobile-final">
+html,body{max-width:100%;overflow-x:hidden}
 #ledgerWrap,.ledger-wrap,.table-wrap{
+  display:block!important;
   width:100%!important;
   max-width:100%!important;
+  min-width:0!important;
   overflow-x:scroll!important;
   -webkit-overflow-scrolling:touch;
   box-sizing:border-box!important;
-  scrollbar-gutter:stable;
-}
-#ledgerTable,.ledger-table{width:900px!important;min-width:900px!important}
-#ledgerWrap::-webkit-scrollbar,.ledger-wrap::-webkit-scrollbar,.table-wrap::-webkit-scrollbar{height:10px}
-#ledgerWrap::-webkit-scrollbar-track,.ledger-wrap::-webkit-scrollbar-track,.table-wrap::-webkit-scrollbar-track{background:#f1eee7;border-radius:10px}
-#ledgerWrap::-webkit-scrollbar-thumb,.ledger-wrap::-webkit-scrollbar-thumb,.table-wrap::-webkit-scrollbar-thumb{background:#b9b3a7;border-radius:10px;border:2px solid #f1eee7}
-</style>
-
-
-<style id="biu-thick-scrollbar">
-/* 明细/流水横向滚动条加粗，桌面端更容易拖动 */
-.main-col .panel-body[style*="padding:0"],
-#ledgerWrap,.ledger-wrap,.table-wrap{
-  scrollbar-width:auto!important;
+  scrollbar-width:auto;
   scrollbar-color:#9f988b #ece8df;
 }
-.main-col .panel-body[style*="padding:0"]::-webkit-scrollbar,
-#ledgerWrap::-webkit-scrollbar,.ledger-wrap::-webkit-scrollbar,.table-wrap::-webkit-scrollbar{
-  height:16px!important;
+#ledgerTable,.ledger-table{
+  width:900px!important;
+  min-width:900px!important;
+  max-width:none!important;
 }
-.main-col .panel-body[style*="padding:0"]::-webkit-scrollbar-track,
+#ledgerWrap::-webkit-scrollbar,.ledger-wrap::-webkit-scrollbar,.table-wrap::-webkit-scrollbar{height:16px!important}
 #ledgerWrap::-webkit-scrollbar-track,.ledger-wrap::-webkit-scrollbar-track,.table-wrap::-webkit-scrollbar-track{
-  background:#ece8df!important;
-  border-radius:10px!important;
+  background:#ece8df!important;border-radius:10px
 }
-.main-col .panel-body[style*="padding:0"]::-webkit-scrollbar-thumb,
 #ledgerWrap::-webkit-scrollbar-thumb,.ledger-wrap::-webkit-scrollbar-thumb,.table-wrap::-webkit-scrollbar-thumb{
-  background:#9f988b!important;
-  border-radius:10px!important;
-  border:3px solid #ece8df!important;
+  background:#9f988b!important;border-radius:10px;border:3px solid #ece8df!important
+}
+@media(max-width:700px){
+  .page,.wrap,.container,.shell,.layout,.content,.main,.main-col,.side-col{
+    min-width:0!important;max-width:100%!important;box-sizing:border-box!important;
+  }
 }
 </style>
 
