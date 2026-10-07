@@ -212,32 +212,27 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-ledger-bottom-only">
-@media (min-width:1081px){
-  .main-col > .panel:nth-child(2){
-    transform:none !important;
-    height:677px !important;
-    min-height:677px !important;
-    max-height:677px !important;
-    overflow:hidden !important;
-  }
-  .main-col > .panel:nth-child(2) .panel-body{
-    height:calc(677px - 49px) !important;
-    overflow-y:auto !important;
-  }
+
+
+
+<style id="biu-aa-bottom-two-column">
+/* AA 底部独立两列：左结算方案，右群组洞察 */
+.aa-bottom-grid{
+  display:grid;
+  grid-template-columns:minmax(0,2.45fr) minmax(300px,1fr);
+  gap:18px;
+  margin-top:18px;
+  align-items:stretch;
 }
-@media (max-width:1080px){
-  .main-col > .panel:nth-child(2){
-    transform:none !important;
-    height:auto !important;
-    min-height:0 !important;
-    max-height:none !important;
-    overflow:visible !important;
-  }
-  .main-col > .panel:nth-child(2) .panel-body{
-    height:auto !important;
-    overflow:visible !important;
-  }
+.aa-bottom-grid > div,
+.aa-bottom-grid .panel{min-width:0}
+.aa-bottom-grid .panel{
+  height:100%;
+  margin:0;
+}
+@media(max-width:1080px){
+  .aa-bottom-grid{grid-template-columns:1fr}
+  .aa-bottom-grid .panel{height:auto}
 }
 </style>
 
@@ -395,20 +390,20 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
         </div>
       </section>
 
-      <!-- 结算 -->
-      <section class="panel">
+    </aside>
+  </div>
+  <div class="aa-bottom-grid">
+    <div class="aa-bottom-left"><section class="panel">
         <div class="panel-head"><h3><span class="dot" style="background:var(--amber)"></span>结算方案</h3><span class="hint">自动算清谁欠谁</span></div>
         <div id="settleList"></div>
         <div id="transferList"></div>
-      </section>
-
-      <!-- 洞察 -->
-      <section class="panel">
+      </section></div>
+    <div class="aa-bottom-right"><section class="panel">
         <div class="panel-head"><h3><span class="dot" style="background:var(--blue)"></span>群组洞察</h3><span class="hint">自动生成</span></div>
         <div id="insightList"></div>
-      </section>
-    </aside>
+      </section></div>
   </div>
+
 </div>
 
 <script src="assets/echarts.min.js" onerror="window.__chartFail=1"></script>
