@@ -35,6 +35,14 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .brand h1{font-size:19px;font-weight:900}
 .brand p{font-size:12px;color:var(--ink-2);margin-top:1px}
 .group-tabs{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px;overflow-x:auto;max-width:100%}
+.app-switch-btn{min-width:210px;height:58px;padding:7px 12px;border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--ink);text-decoration:none;margin-left:18px;white-space:nowrap;transition:border-color .15s,background .15s,box-shadow .15s;box-sizing:border-box}
+.app-switch-btn:hover{border-color:var(--jade);background:var(--panel);box-shadow:0 3px 12px rgba(30,70,55,.08)}
+.app-switch-btn .switch-mark{width:38px;height:38px;border-radius:9px;background:var(--jade);display:grid;place-items:center;color:#fff;flex:none}
+.app-switch-btn .switch-mark svg{width:20px;height:20px}
+.app-switch-btn .switch-copy{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.app-switch-btn .switch-title{font-size:18px;font-weight:900;color:var(--ink)}
+.app-switch-btn .switch-sub{font-size:11.5px;color:var(--ink-2);margin-top:4px;font-weight:400}
+
 .group-tab{border:0;background:transparent;padding:7px 15px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--ink-2);font-family:inherit;font-weight:500;white-space:nowrap}
 .group-tab.active{background:var(--jade);color:#fff;font-weight:700}
 .group-tab:hover:not(.active){background:var(--jade-soft);color:var(--jade-deep)}
@@ -196,6 +204,10 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
         <h1>AA记账</h1>
         <p>几个好友 · 一起记 · 自动算清</p>
       </div>
+      <a class="app-switch-btn" href="../bookkeeping/" title="进入消费智记">
+        <span class="switch-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 5v14.5M4 19.5h16M7 8.5h4M7 12h4M14 8.5h3M14 12h3"/></svg></span>
+        <span class="switch-copy"><span class="switch-title">消费智记</span><span class="switch-sub">记录每一笔 · 看懂每一次支出</span></span>
+      </a>
     </div>
     <div class="group-tabs" id="groupTabs"></div>
   </header>
