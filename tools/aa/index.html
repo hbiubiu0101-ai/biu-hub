@@ -182,6 +182,26 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 @media (max-width:520px){.kpi-grid{grid-template-columns:1fr 1fr;gap:10px}.kpi .k-value{font-size:21px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.save-btn{grid-column:auto}.ledger .note{display:none}.ledger colgroup col:nth-child(4){width:0}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
+
+<style id="biu-aa-header-mobile-safe">
+.biu-tool-entry{
+  display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;
+  border:1px solid var(--line,#E4E0D4);border-radius:7px;background:#fff;
+  color:var(--ink,#262B27);text-decoration:none;font-size:13px;font-weight:700;
+  white-space:nowrap;flex:none;
+}
+.biu-tool-entry:hover{border-color:var(--jade,#1B6B53);background:var(--jade-soft,#E3EFEA);color:var(--jade-deep,#13503E)}
+.biu-tool-entry svg{width:15px;height:15px;flex:none}
+@media(max-width:700px){
+  .topbar{gap:10px!important}
+  .brand{width:100%!important;min-width:0!important;flex-wrap:wrap!important;gap:8px!important}
+  .brand>div{min-width:0}
+  .brand h1{white-space:nowrap!important}
+  .biu-tool-entry{height:34px;padding:0 10px;font-size:12px}
+  .top-actions{width:100%!important;justify-content:flex-end!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -192,6 +212,9 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="3.5"/><circle cx="17" cy="9" r="3.5"/><path d="M3.5 20c0-2.8 2.2-4.2 5.5-4.2S14.5 17.2 14.5 20M14.5 16.2c3 0 5 1.4 5 3.8"/></svg>
       </div>
+<a class="biu-tool-entry" href="index.html" title="进入消费智记" aria-label="进入消费智记">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 5v14.5"/><path d="M4 19.5h16M7 8.5h4M7 12h4"/></svg>
+<span>消费智记</span></a>
       <div>
         <h1>AA记账</h1>
         
