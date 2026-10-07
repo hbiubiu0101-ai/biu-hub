@@ -845,39 +845,41 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 
 
-<style id="biu-bookkeeping-10rows-final">
-/* 消费明细：固定约10条记录高度；超过10条上下滚动，同时保留左右滚动 */
-#ledgerWrap,.ledger-wrap,.table-wrap{
-  height:500px!important;
-  max-height:500px!important;
-  overflow-y:scroll!important;
-  overflow-x:scroll!important;
-  -webkit-overflow-scrolling:touch;
-  box-sizing:border-box!important;
-  scrollbar-width:auto;
-  scrollbar-color:#9f988b #ece8df;
+
+
+
+<style id="biu-bookkeeping-mobile-card-scroll-final">
+/* 消费明细：固定10条高度；卡片内部上下+左右滚动 */
+.ledger-fixed-card .ledger-scroll{
+  height:500px!important;max-height:500px!important;
+  overflow-x:auto!important;overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x pan-y!important;
+  scrollbar-width:auto!important;
 }
-#ledgerTable,.ledger-table{
-  min-width:900px!important;
+.ledger-fixed-card .ledger-scroll table.ledger{
+  width:900px!important;min-width:900px!important;max-width:none!important;
+  table-layout:fixed!important;
 }
-#ledgerWrap::-webkit-scrollbar,
-.ledger-wrap::-webkit-scrollbar,
-.table-wrap::-webkit-scrollbar{
-  width:14px!important;
-  height:14px!important;
-}
-#ledgerWrap::-webkit-scrollbar-track,
-.ledger-wrap::-webkit-scrollbar-track,
-.table-wrap::-webkit-scrollbar-track{
-  background:#ece8df!important;
-  border-radius:10px;
-}
-#ledgerWrap::-webkit-scrollbar-thumb,
-.ledger-wrap::-webkit-scrollbar-thumb,
-.table-wrap::-webkit-scrollbar-thumb{
-  background:#9f988b!important;
-  border-radius:10px;
-  border:3px solid #ece8df!important;
+.ledger-fixed-card .ledger-scroll::-webkit-scrollbar{width:14px!important;height:16px!important}
+.ledger-fixed-card .ledger-scroll::-webkit-scrollbar-track{background:#ece8df!important}
+.ledger-fixed-card .ledger-scroll::-webkit-scrollbar-thumb{background:#9f988b!important;border-radius:10px;border:3px solid #ece8df!important}
+@media(max-width:700px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+  .ledger-fixed-card{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+  .ledger-fixed-card .ledger-scroll{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    overflow-x:auto!important;overflow-y:auto!important;
+  }
+  .ledger-fixed-card .ledger-scroll table.ledger,
+  .ledger-fixed-card .ledger-scroll table.ledger tbody{
+    display:table!important;width:900px!important;min-width:900px!important;
+  }
+  .ledger-fixed-card .ledger-scroll table.ledger thead{display:table-header-group!important}
+  .ledger-fixed-card .ledger-scroll table.ledger tbody{display:table-row-group!important}
+  .ledger-fixed-card .ledger-scroll table.ledger tr{display:table-row!important}
+  .ledger-fixed-card .ledger-scroll table.ledger th,
+  .ledger-fixed-card .ledger-scroll table.ledger td{display:table-cell!important}
 }
 </style>
 

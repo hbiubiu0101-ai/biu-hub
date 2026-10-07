@@ -340,6 +340,30 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 </style>
 
+
+<style id="biu-aa-mobile-card-scroll-final">
+@media(max-width:700px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+  .main-col,.main-col>.panel{width:100%!important;max-width:100%!important;min-width:0!important}
+  .ledger-scrollbox{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    overflow-x:auto!important;overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x pan-y!important;
+  }
+  .ledger-scrollbox .ledger{
+    display:table!important;
+    width:900px!important;min-width:900px!important;max-width:none!important;
+    table-layout:fixed!important;
+  }
+  .ledger-scrollbox .ledger thead{display:table-header-group!important}
+  .ledger-scrollbox .ledger tbody{display:table-row-group!important}
+  .ledger-scrollbox .ledger tr{display:table-row!important}
+  .ledger-scrollbox .ledger th,.ledger-scrollbox .ledger td{display:table-cell!important}
+  .ledger-scrollbox::-webkit-scrollbar{height:16px!important;width:14px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
