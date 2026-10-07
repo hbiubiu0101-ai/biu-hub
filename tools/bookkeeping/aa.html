@@ -271,42 +271,45 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-ledger-inner-scroll">
-/* 群组流水：滚动条只存在卡片内部，不把整页撑宽 */
+
+
+
+<style id="biu-aa-ledger-visible-xscroll">
+/* 群组流水：像纵向滚动条一样，在卡片底部显示横向滚动条 */
 .main-col .panel-body[style*="padding:0"]{
   width:100%!important;
   max-width:100%!important;
-  overflow-x:auto!important;
-  overflow-y:visible!important;
+  overflow-x:scroll!important;
+  overflow-y:hidden!important;
   -webkit-overflow-scrolling:touch;
   box-sizing:border-box!important;
+  scrollbar-gutter:stable;
 }
 .ledger{
-  width:100%;
-  min-width:820px;
-  table-layout:fixed;
+  width:900px!important;
+  min-width:900px!important;
+  table-layout:fixed!important;
 }
-.ledger col:nth-child(1){width:12%}
-.ledger col:nth-child(2){width:27%}
-.ledger col:nth-child(3){width:18%}
-.ledger col:nth-child(4){width:19%}
-.ledger col:nth-child(5){width:14%}
-.ledger col:nth-child(6){width:10%}
+.ledger col:nth-child(1){width:110px!important}
+.ledger col:nth-child(2){width:240px!important}
+.ledger col:nth-child(3){width:150px!important}
+.ledger col:nth-child(4){width:190px!important}
+.ledger col:nth-child(5){width:130px!important}
+.ledger col:nth-child(6){width:80px!important}
 .ledger th,.ledger td{padding-left:14px!important;padding-right:14px!important}
 .parts-line{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:5px}
 .parts-line:last-child{margin-bottom:0}
-.datetime-cell{white-space:nowrap;padding-left:18px!important}
+.datetime-cell{white-space:nowrap}
 .ledger th:nth-child(5),.ledger td:nth-child(5){text-align:right;white-space:nowrap}
 .ledger th:nth-child(6),.ledger td:nth-child(6){text-align:center;white-space:nowrap}
 .ledger .del-btn{position:static!important;margin:0 auto!important}
+/* 明确显示滚动槽 */
+.main-col .panel-body[style*="padding:0"]::-webkit-scrollbar{height:10px}
+.main-col .panel-body[style*="padding:0"]::-webkit-scrollbar-track{background:#f1eee7;border-radius:10px}
+.main-col .panel-body[style*="padding:0"]::-webkit-scrollbar-thumb{background:#b9b3a7;border-radius:10px;border:2px solid #f1eee7}
 @media(max-width:700px){
   .main-col{min-width:0!important;width:100%!important;max-width:100%!important}
   .main-col .panel{min-width:0!important;max-width:100%!important;overflow:hidden!important}
-  .main-col .panel-body[style*="padding:0"]{display:block!important}
-  .ledger{width:820px!important;min-width:820px!important}
-  .ledger th:last-child,.ledger td:last-child{
-    position:static!important;right:auto!important;background:transparent!important;z-index:auto!important;
-  }
 }
 </style>
 

@@ -830,21 +830,23 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 
 
-<style id="biu-bookkeeping-ledger-inner-scroll">
-/* 消费明细：仅卡片内部左右滑动，页面本身不横向溢出 */
+
+
+
+<style id="biu-bookkeeping-visible-xscroll">
+/* 消费明细：卡片底部始终保留横向滚动条 */
 #ledgerWrap,.ledger-wrap,.table-wrap{
   width:100%!important;
   max-width:100%!important;
-  overflow-x:auto!important;
-  overflow-y:visible!important;
+  overflow-x:scroll!important;
   -webkit-overflow-scrolling:touch;
   box-sizing:border-box!important;
+  scrollbar-gutter:stable;
 }
-#ledgerTable,.ledger-table{min-width:760px}
-@media(max-width:700px){
-  #ledgerWrap,.ledger-wrap,.table-wrap{display:block!important}
-  #ledgerTable,.ledger-table{width:760px!important;min-width:760px!important}
-}
+#ledgerTable,.ledger-table{width:900px!important;min-width:900px!important}
+#ledgerWrap::-webkit-scrollbar,.ledger-wrap::-webkit-scrollbar,.table-wrap::-webkit-scrollbar{height:10px}
+#ledgerWrap::-webkit-scrollbar-track,.ledger-wrap::-webkit-scrollbar-track,.table-wrap::-webkit-scrollbar-track{background:#f1eee7;border-radius:10px}
+#ledgerWrap::-webkit-scrollbar-thumb,.ledger-wrap::-webkit-scrollbar-thumb,.table-wrap::-webkit-scrollbar-thumb{background:#b9b3a7;border-radius:10px;border:2px solid #f1eee7}
 </style>
 
 </head>
