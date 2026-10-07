@@ -209,21 +209,21 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-ledger-align-right-stack">
+
+
+
+<style id="biu-aa-ledger-bottom-only">
 @media (min-width:1081px){
-  /* 按当前桌面布局硬对齐：
-     群组流水顶部 = 智能识别顶部；
-     群组流水底部 = 群组成员底部。 */
   .main-col > .panel:nth-child(2){
-    transform: translateY(148px) !important;
-    height: 534px !important;
-    min-height: 534px !important;
-    max-height: 534px !important;
-    overflow: hidden !important;
+    transform:none !important;
+    height:534px !important;
+    min-height:534px !important;
+    max-height:534px !important;
+    overflow:hidden !important;
   }
   .main-col > .panel:nth-child(2) .panel-body{
-    height: calc(534px - 49px) !important;
-    overflow-y: auto !important;
+    height:calc(534px - 49px) !important;
+    overflow-y:auto !important;
   }
 }
 @media (max-width:1080px){
