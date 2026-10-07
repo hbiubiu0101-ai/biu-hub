@@ -206,19 +206,37 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-ledger-hard-height">
-@media (min-width: 901px){
-  /* 桌面端强制固定群组流水卡片高度，不再跟明细条数变化 */
-  #ledgerCard, .ledger-card{
-    height: 390px !important;
-    min-height: 390px !important;
-    max-height: 390px !important;
+
+
+
+<style id="biu-aa-ledger-align-right-stack">
+@media (min-width:1081px){
+  /* 按当前桌面布局硬对齐：
+     群组流水顶部 = 智能识别顶部；
+     群组流水底部 = 群组成员底部。 */
+  .main-col > .panel:nth-child(2){
+    transform: translateY(148px) !important;
+    height: 534px !important;
+    min-height: 534px !important;
+    max-height: 534px !important;
     overflow: hidden !important;
   }
-  #ledgerCard .table-wrap, .ledger-card .table-wrap,
-  #ledgerCard .ledger-list, .ledger-card .ledger-list{
-    max-height: 330px !important;
+  .main-col > .panel:nth-child(2) .panel-body{
+    height: calc(534px - 49px) !important;
     overflow-y: auto !important;
+  }
+}
+@media (max-width:1080px){
+  .main-col > .panel:nth-child(2){
+    transform:none !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow:visible !important;
+  }
+  .main-col > .panel:nth-child(2) .panel-body{
+    height:auto !important;
+    overflow:visible !important;
   }
 }
 </style>
