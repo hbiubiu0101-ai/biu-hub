@@ -805,6 +805,27 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 }
 </style>
 
+
+<style id="biu-aa-entry-mobile-safe">
+.tool-entry{
+  display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;
+  border:1px solid var(--line);border-radius:7px;background:var(--panel);
+  color:var(--ink);text-decoration:none;font-size:13px;font-weight:700;
+  white-space:nowrap;flex:none;
+}
+.tool-entry:hover{border-color:var(--jade);background:var(--jade-soft);color:var(--jade-deep)}
+.tool-entry svg{width:15px;height:15px;flex:none}
+@media(max-width:520px){
+  .topbar{gap:10px!important}
+  .brand{width:100%;min-width:0;flex-wrap:wrap;gap:8px!important}
+  .brand>div:nth-child(2){min-width:0}
+  .brand h1{white-space:nowrap}
+  .refresh-btn{margin-left:0!important}
+  .tool-entry{height:34px;padding:0 10px;font-size:12px}
+  .top-actions{width:100%;justify-content:flex-end}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -822,6 +843,10 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
       <button type="button" id="manualRefreshBtn" class="refresh-btn" title="刷新最新数据" aria-label="刷新最新数据">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M6.1 9A7 7 0 0 1 18.2 6.2L20 11M4 13l1.8 4.8A7 7 0 0 0 17.9 15"/></svg>
       </button>
+      <a class="tool-entry" href="aa.html" title="进入AA记账" aria-label="进入AA记账">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 19c.6-3 2.4-5 5-5s4.4 2 5 5"/><path d="M12 19c.5-2.6 2-4.5 4-4.5 2.4 0 4 1.8 5 4.5"/></svg>
+        <span>AA记账</span>
+      </a>
     </div>
     <div class="top-actions">
       <div class="date-chip">
