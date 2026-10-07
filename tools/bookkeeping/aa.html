@@ -569,9 +569,38 @@ function clearCloudError(){
     btn.title="";
   }
 }
+async function ensureCurrentGroupId(){
+  const name=(state.group||"我的AA群组").trim();
+  if(GROUP_IDS[name]) return GROUP_IDS[name];
+
+  const rows=await api("aa_groups?group_name=eq."+encodeURIComponent(name)+"&select=id,group_name,members&limit=1");
+  if(Array.isArray(rows)&&rows[0]&&rows[0].id){
+    GROUP_IDS[name]=rows[0].id;
+    if(!DATA[name]){
+      let mem=Array.isArray(rows[0].members)?rows[0].members.filter(Boolean):[];
+      if(!mem.includes(ME)) mem=[ME,...mem];
+      DATA[name]={members:mem.length?mem:[ME],records:[]};
+    }
+    return rows[0].id;
+  }
+
+  const created=await api("aa_groups",{
+    method:"POST",
+    headers:{"Prefer":"return=representation"},
+    body:JSON.stringify({
+      group_name:name,
+      members:(DATA[name]&&DATA[name].members&&DATA[name].members.length)?DATA[name].members:[ME],
+      updated_at:new Date().toISOString()
+    })
+  });
+  if(!Array.isArray(created)||!created[0]||!created[0].id) throw new Error("无法取得群组ID");
+  GROUP_IDS[name]=created[0].id;
+  if(!DATA[name]) DATA[name]={members:[ME],records:[]};
+  return created[0].id;
+}
+
 async function saveGroupMembers(){
-  const gid=GROUP_IDS[state.group];
-  if(!gid) return;
+  const gid=await ensureCurrentGroupId();
   await api("aa_groups?id=eq."+encodeURIComponent(gid),{
     method:"PATCH",
     headers:{"Prefer":"return=minimal"},
@@ -783,13 +812,15 @@ function updateSplitTip(){
 async function saveRecord(){
   const amt=parseFloat($("fAmount").value);
   if(!amt||amt<=0){ $("fAmount").focus(); flashSave("请输入有效金额", true); return; }
-  if(!GROUP_IDS[state.group]){ flashSave("群组尚未同步", true); return; }
+  let gid;
+  try{ gid=await ensureCurrentGroupId(); }
+  catch(e){ console.error(e); flashSave("群组同步失败："+(e.message||e), true); return; }
   const payer=$("fPayer").value;
   const split=$("fSplit").value;
   const parts = split==="payer" ? [payer] : (pickedParts&&pickedParts.length ? pickedParts.slice() : [payer]);
   const rec={
     client_id:makeClientId(),
-    group_id:GROUP_IDS[state.group],
+    group_id:gid,
     amount:Math.round(amt*100)/100,
     payer,
     participants:parts,
