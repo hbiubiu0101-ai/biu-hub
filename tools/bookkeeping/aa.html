@@ -261,6 +261,31 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 }
 </style>
 
+
+<style id="biu-aa-ledger-detail-fix">
+.parts-cell{vertical-align:middle}
+.parts-line{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;margin-bottom:3px}
+.parts-line:last-child{margin-bottom:0}
+.datetime-cell{white-space:nowrap}
+@media(max-width:700px){
+  /* 手机端明细保持表格列宽，允许横向滑动，避免删除 X 压住内容 */
+  .ledger-table-wrap,.table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  #ledgerTable{min-width:720px!important}
+  #ledgerTable th:last-child,#ledgerTable td:last-child{
+    position:sticky!important;right:0!important;
+    width:48px!important;min-width:48px!important;
+    background:var(--panel,#fff)!important;
+    z-index:3!important;text-align:center!important;
+  }
+  #ledgerTable .del-btn{
+    position:static!important;
+    margin:0 auto!important;
+    width:26px!important;height:26px!important;
+    display:grid!important;place-items:center!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -749,11 +774,17 @@ function renderLedger(){
   $("ledgerEmpty").style.display = recs.length?"none":"block";
   recs.forEach(r=>{
     const tr=el("tr");
-    tr.appendChild(el("td","date num", r.date.slice(5)));
     tr.appendChild(el("td","", `<span class="member-chip" style="color:${colorOf(r.payer)}"><i style="background:${colorOf(r.payer)}"></i>${esc(r.payer)}</span>`));
-    const partsTd=el("td","");
-    partsTd.innerHTML=(r.parts&&r.parts.length?r.parts:[r.payer]).map(m=>`<span class="member-chip" style="color:${colorOf(m)}"><i style="background:${colorOf(m)}"></i>${esc(m)}</span>`).join("");
+    const partsTd=el("td","parts-cell");
+    const ps=(r.parts&&r.parts.length?r.parts:[r.payer]);
+    for(let i=0;i<ps.length;i+=3){
+      const line=el("div","parts-line");
+      line.innerHTML=ps.slice(i,i+3).map(m=>`<span class="member-chip" style="color:${colorOf(m)}"><i style="background:${colorOf(m)}"></i>${esc(m)}</span>`).join("");
+      partsTd.appendChild(line);
+    }
     tr.appendChild(partsTd);
+    const dt=(r.date||"").slice(5).replace("-","/") + (r.time ? " "+String(r.time).slice(0,5) : "");
+    tr.appendChild(el("td","date num datetime-cell", dt));
     tr.appendChild(el("td","note", esc(r.note)||"—"));
     tr.appendChild(el("td","amt num", money(r.amount)));
     const td=el("td"); td.style.textAlign="center";
