@@ -827,18 +827,23 @@ td.datetime{color:#7A817C;white-space:nowrap;font-variant-numeric:tabular-nums}
 </style>
 
 
-<style id="biu-bookkeeping-ledger-scroll">
-/* 消费明细：桌面和手机都允许横向查看完整列 */
+
+
+
+<style id="biu-bookkeeping-ledger-inner-scroll">
+/* 消费明细：仅卡片内部左右滑动，页面本身不横向溢出 */
 #ledgerWrap,.ledger-wrap,.table-wrap{
+  width:100%!important;
+  max-width:100%!important;
   overflow-x:auto!important;
+  overflow-y:visible!important;
   -webkit-overflow-scrolling:touch;
-  scrollbar-gutter:stable;
+  box-sizing:border-box!important;
 }
-#ledgerTable,.ledger-table{
-  min-width:760px;
-}
+#ledgerTable,.ledger-table{min-width:760px}
 @media(max-width:700px){
-  #ledgerTable,.ledger-table{min-width:760px!important}
+  #ledgerWrap,.ledger-wrap,.table-wrap{display:block!important}
+  #ledgerTable,.ledger-table{width:760px!important;min-width:760px!important}
 }
 </style>
 

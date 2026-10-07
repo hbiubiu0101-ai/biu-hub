@@ -268,17 +268,22 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 
 
-<style id="biu-aa-ledger-columns-v4">
-/* AA流水：给参与人/日期时间留足空间，并提供独立左右滚动条 */
+
+
+
+<style id="biu-aa-ledger-inner-scroll">
+/* 群组流水：滚动条只存在卡片内部，不把整页撑宽 */
 .main-col .panel-body[style*="padding:0"]{
+  width:100%!important;
+  max-width:100%!important;
   overflow-x:auto!important;
   overflow-y:visible!important;
-  scrollbar-gutter:stable;
-  padding-bottom:6px!important;
+  -webkit-overflow-scrolling:touch;
+  box-sizing:border-box!important;
 }
 .ledger{
   width:100%;
-  min-width:860px;
+  min-width:820px;
   table-layout:fixed;
 }
 .ledger col:nth-child(1){width:12%}
@@ -288,16 +293,17 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .ledger col:nth-child(5){width:14%}
 .ledger col:nth-child(6){width:10%}
 .ledger th,.ledger td{padding-left:14px!important;padding-right:14px!important}
+.parts-line{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:5px}
+.parts-line:last-child{margin-bottom:0}
+.datetime-cell{white-space:nowrap;padding-left:18px!important}
 .ledger th:nth-child(5),.ledger td:nth-child(5){text-align:right;white-space:nowrap}
 .ledger th:nth-child(6),.ledger td:nth-child(6){text-align:center;white-space:nowrap}
-.parts-cell{vertical-align:middle}
-.parts-line{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin-bottom:6px}
-.parts-line:last-child{margin-bottom:0}
-.datetime-cell{white-space:nowrap;padding-left:20px!important}
 .ledger .del-btn{position:static!important;margin:0 auto!important}
 @media(max-width:700px){
-  .main-col .panel-body[style*="padding:0"]{-webkit-overflow-scrolling:touch}
-  .ledger{width:860px!important;min-width:860px!important}
+  .main-col{min-width:0!important;width:100%!important;max-width:100%!important}
+  .main-col .panel{min-width:0!important;max-width:100%!important;overflow:hidden!important}
+  .main-col .panel-body[style*="padding:0"]{display:block!important}
+  .ledger{width:820px!important;min-width:820px!important}
   .ledger th:last-child,.ledger td:last-child{
     position:static!important;right:auto!important;background:transparent!important;z-index:auto!important;
   }
