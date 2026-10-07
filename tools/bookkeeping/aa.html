@@ -202,6 +202,21 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 }
 </style>
 
+
+<style id="biu-aa-bottom-align-fix">
+@media (min-width: 901px){
+  /* AA 下半区：左右列底部齐平 */
+  .main-grid{
+    align-items:stretch !important;
+  }
+  /* 左侧群组流水卡片不要继续撑出大片空白 */
+  #ledgerCard, .ledger-card{
+    height:auto !important;
+    min-height:0 !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
