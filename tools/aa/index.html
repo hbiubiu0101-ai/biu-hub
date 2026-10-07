@@ -35,14 +35,6 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .brand h1{font-size:19px;font-weight:900}
 .brand p{font-size:12px;color:var(--ink-2);margin-top:1px}
 .group-tabs{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px;overflow-x:auto;max-width:100%}
-.app-switch-btn{min-width:248px;height:64px;padding:7px 12px;border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;color:var(--ink);text-decoration:none;margin-left:22px;white-space:nowrap;transition:border-color .15s,background .15s,box-shadow .15s;box-sizing:border-box}
-.app-switch-btn:hover{border-color:var(--jade);background:var(--panel);box-shadow:0 3px 12px rgba(30,70,55,.08)}
-.app-switch-btn .switch-mark{width:38px;height:38px;border-radius:9px;background:var(--jade);display:grid;place-items:center;color:#fff;flex:none}
-.app-switch-btn .switch-mark svg{width:20px;height:20px}
-.app-switch-btn .switch-copy{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
-.app-switch-btn .switch-title{font-size:18px;font-weight:900;color:var(--ink)}
-.app-switch-btn .switch-sub{font-size:11.5px;color:var(--ink-2);margin-top:4px;font-weight:400}
-
 .group-tab{border:0;background:transparent;padding:7px 15px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--ink-2);font-family:inherit;font-weight:500;white-space:nowrap}
 .group-tab.active{background:var(--jade);color:#fff;font-weight:700}
 .group-tab:hover:not(.active){background:var(--jade-soft);color:var(--jade-deep)}
@@ -87,8 +79,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .ledger colgroup col:nth-child(3){width:24%}
 .ledger colgroup col:nth-child(4){width:30%}
 .ledger colgroup col:nth-child(5){width:12%}
-.ledger colgroup col:nth-child(6){width:8%}
-.ledger colgroup col:nth-child(7){width:7%}
+.ledger colgroup col:nth-child(6){width:10%}
 .ledger th{text-align:left;font-size:12px;font-weight:500;color:var(--ink-3);padding:8px 12px;border-bottom:1px solid var(--line-strong);background:var(--paper)}
 .ledger td{padding:10px 12px;border-bottom:1px dashed var(--line);font-size:13px;vertical-align:middle}
 .ledger tr:last-child td{border-bottom:0}
@@ -97,19 +88,12 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .ledger .date{color:var(--ink-3);font-size:12px}
 .member-chip{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:1px 8px;font-size:11.5px;color:var(--ink-2);margin:1px}
 .member-chip i{width:6px;height:6px;border-radius:50%;flex:none}
-.ledger-edit-btn{border:1px solid var(--line-strong);background:#FCFBF7;border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--jade);font-size:12px;font-family:inherit}.ledger-edit-btn:hover{border-color:var(--jade);background:var(--jade-soft)}
 .ledger .del-btn{border:1px solid var(--line);background:var(--panel);border-radius:5px;width:24px;height:24px;cursor:pointer;color:var(--ink-3);font-size:13px;line-height:1;display:grid;place-items:center}
 .ledger .del-btn:hover{border-color:var(--red);color:var(--red)}
 .ledger-empty{text-align:center;padding:38px 0;color:var(--ink-3);font-size:13px}
 
-.aa-ledger-panel{min-height:410px}
-.aa-settle-panel{min-height:185px}
-.aa-settle-panel #settleList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 18px 6px}
-.aa-settle-panel #transferList{padding:0 18px 14px}
-
 /* ============ 侧栏 ============ */
 .side-col{display:flex;flex-direction:column;gap:18px}
-.side-pair{display:flex;flex-direction:column;gap:18px;width:100%}.side-pair .panel{width:100%;min-width:0}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field.full{grid-column:1/-1}
@@ -124,7 +108,6 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .save-btn{grid-column:1/-1;border:0;border-radius:7px;background:var(--jade);color:#fff;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:2px}
 .save-btn:hover{background:var(--jade-deep)}
 .save-btn:active{transform:translateY(1px)}
-.part-share{margin-left:4px;font-size:10.5px;font-weight:800}
 .split-tip{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.5}
 
 /* 成员管理 */
@@ -194,44 +177,11 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .insight .i-text .muted{color:var(--ink-3);font-size:11.5px;margin-top:2px}
 
 /* ============ 响应式 ============ */
-@media (max-width:1080px){.shell{grid-template-columns:minmax(0,1fr)}.side-col{display:grid;grid-template-columns:1fr 1fr}.side-pair{grid-column:1/-1;display:flex;flex-direction:column}}
-@media (max-width:820px){.app{padding:14px 14px 40px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-grid{grid-template-columns:1fr}.side-col{grid-template-columns:1fr}.side-pair{display:flex;flex-direction:column}.topbar{flex-direction:column;align-items:flex-start}}
+@media (max-width:1080px){.shell{grid-template-columns:minmax(0,1fr)}.side-col{display:grid;grid-template-columns:1fr 1fr}}
+@media (max-width:820px){.app{padding:14px 14px 40px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-grid{grid-template-columns:1fr}.side-col{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}}
 @media (max-width:520px){.kpi-grid{grid-template-columns:1fr 1fr;gap:10px}.kpi .k-value{font-size:21px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.save-btn{grid-column:auto}.ledger .note{display:none}.ledger colgroup col:nth-child(4){width:0}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-
-@media (max-width:760px){
-  .aa-ledger-panel,.aa-settle-panel{min-height:0}
-  .aa-settle-panel #settleList{grid-template-columns:1fr;padding:12px}
-  .aa-settle-panel #transferList{padding:0 12px 12px}
-}
 </style>
-
-<style id="mobile-topbar-layout-fix-v1">
-/* 手机端顶栏：标题、切换入口、刷新、月份分行，避免标题被挤成竖排 */
-@media (max-width:820px){
-  .topbar{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:6px 0 14px!important}
-  .brand{width:100%!important;display:grid!important;grid-template-columns:38px minmax(0,1fr) 38px!important;grid-template-rows:auto auto!important;column-gap:10px!important;row-gap:9px!important;align-items:center!important}
-  .brand>.brand-mark{grid-column:1;grid-row:1;margin:0!important}
-  .brand>div:not(.brand-mark){grid-column:2 / 4;grid-row:1;min-width:0!important}
-  .brand h1{font-size:18px!important;line-height:1.25!important;white-space:nowrap!important;word-break:keep-all!important}
-  .brand p{font-size:11px!important;line-height:1.35!important;white-space:nowrap!important;word-break:keep-all!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  .brand>.app-switch-btn{grid-column:1 / 3!important;grid-row:2!important;width:100%!important;min-width:0!important;height:54px!important;margin:0!important;padding:7px 10px!important}
-  .brand>.refresh-btn{grid-column:3!important;grid-row:2!important;width:38px!important;height:38px!important;margin:0!important;justify-self:end!important}
-  .app-switch-btn .switch-mark{width:34px!important;height:34px!important;border-radius:8px!important}
-  .app-switch-btn .switch-title{font-size:16px!important}
-  .app-switch-btn .switch-sub{font-size:10.5px!important;margin-top:2px!important}
-  .top-actions{width:100%!important;display:block!important}
-  .date-chip{width:100%!important;box-sizing:border-box!important;justify-content:center!important;padding:7px 10px!important}
-  .month-nav{width:100%!important;justify-content:space-between!important}
-  .month-nav b{flex:1!important;min-width:0!important;text-align:center!important}
-}
-@media (max-width:520px){
-  .app{padding-left:12px!important;padding-right:12px!important}
-  .brand{grid-template-columns:38px minmax(0,1fr) 38px!important}
-  .brand>.app-switch-btn{height:52px!important}
-}
-</style>
-
 </head>
 <body>
 <div class="app">
@@ -244,12 +194,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
       </div>
       <div>
         <h1>AA记账</h1>
-        <p>几个好友 · 一起记 · 自动算清</p>
+        
       </div>
-      <a class="app-switch-btn" href="../bookkeeping/" title="进入消费智记">
-        <span class="switch-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 5v14.5M4 19.5h16M7 8.5h4M7 12h4M14 8.5h3M14 12h3"/></svg></span>
-        <span class="switch-copy"><span class="switch-title">消费智记</span><span class="switch-sub">记录每一笔 · 看懂每一次支出</span></span>
-      </a>
     </div>
     <div class="group-tabs" id="groupTabs"></div>
   </header>
@@ -294,25 +240,18 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
       </section>
 
       <!-- 流水 -->
-      <section class="panel aa-ledger-panel">
+      <section class="panel">
         <div class="panel-head"><h3><span class="dot"></span>群组流水</h3><span class="hint">谁付的 · 谁参与 · 一清二楚</span></div>
         <div class="panel-body" style="padding:0">
           <table class="ledger">
-            <colgroup><col><col><col><col><col><col><col></colgroup>
+            <colgroup><col><col><col><col><col><col></colgroup>
             <thead>
-              <tr><th>日期</th><th>付款人</th><th>参与人 / 应摊</th><th>备注</th><th style="text-align:right">金额</th><th style="text-align:center">操作</th><th></th></tr>
+              <tr><th>日期</th><th>付款人</th><th>参与人</th><th>备注</th><th style="text-align:right">金额</th><th style="text-align:center">操作</th></tr>
             </thead>
             <tbody id="ledgerBody"></tbody>
           </table>
           <div id="ledgerEmpty" class="ledger-empty" style="display:none">这个群组还没有记录，去右侧记一笔吧</div>
         </div>
-      </section>
-
-      <!-- 结算：固定在左栏流水下方 -->
-      <section class="panel aa-settle-panel">
-        <div class="panel-head"><h3><span class="dot" style="background:var(--amber)"></span>结算方案</h3><span class="hint">自动算清谁欠谁</span></div>
-        <div id="settleList"></div>
-        <div id="transferList"></div>
       </section>
     </div>
 
@@ -337,6 +276,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
               <select id="fSplit">
                 <option value="equal">平均分摊（AA）</option>
                 <option value="payer">仅付款人承担</option>
+                <option value="custom">自定义比例</option>
               </select>
             </div>
             <div class="field full">
@@ -383,17 +323,22 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
         </div>
       </section>
 
-      <div class="side-pair">
-        <!-- 成员 -->
-        <section class="panel">
-          <div class="panel-head"><h3><span class="dot"></span>群组成员</h3><span class="hint">增删好友</span></div>
-          <div id="memberList"></div>
-          <div class="m-add">
-            <input type="text" id="newMember" placeholder="输入好友名字添加…">
-            <button id="addMemberBtn">添加</button>
-          </div>
-        </section>
-      </div>
+      <!-- 成员 -->
+      <section class="panel">
+        <div class="panel-head"><h3><span class="dot"></span>群组成员</h3><span class="hint">增删好友</span></div>
+        <div id="memberList"></div>
+        <div class="m-add">
+          <input type="text" id="newMember" placeholder="输入好友名字添加…">
+          <button id="addMemberBtn">添加</button>
+        </div>
+      </section>
+
+      <!-- 结算 -->
+      <section class="panel">
+        <div class="panel-head"><h3><span class="dot" style="background:var(--amber)"></span>结算方案</h3><span class="hint">自动算清谁欠谁</span></div>
+        <div id="settleList"></div>
+        <div id="transferList"></div>
+      </section>
 
       <!-- 洞察 -->
       <section class="panel">
@@ -409,56 +354,28 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
 <script>
 /* ============ 数据模型：群组 + 成员 + 记录 ============ */
 const ME = "我";
-const AA_STORAGE_KEY = "biu_aa_bookkeeping_v2";
-const SUPABASE_URL = "https://bbydvphxaczjgtlmvlgs.supabase.co";
-const SUPABASE_KEY = "sb_publishable_0odHAoSGf6PA4gqIVfVwZQ_WuIVRRBy";
-const DEFAULT_DATA = {
-  "周末出游": {members:["我","小红","阿杰"], records:[]},
-  "合租小分队": {members:["我","阿杰"], records:[]}
+const DATA = {
+  "周末出游": {
+    members: ["我","小红","阿杰"],
+    records: [
+      {date:"2026-10-03", payer:"我", amount:186, parts:["我","小红","阿杰"], note:"聚餐火锅", pay:"微信"},
+      {date:"2026-10-03", payer:"小红", amount:60, parts:["小红","阿杰"], note:"打车去景区", pay:"支付宝"},
+      {date:"2026-10-04", payer:"阿杰", amount:120, parts:["我","小红","阿杰"], note:"景点门票", pay:"微信"},
+      {date:"2026-10-05", payer:"我", amount:96, parts:["我","小红","阿杰"], note:"超市补给", pay:"支付宝"},
+      {date:"2026-10-06", payer:"阿杰", amount:45, parts:["我","小红","阿杰"], note:"奶茶", pay:"微信"}
+    ]
+  },
+  "合租小分队": {
+    members: ["我","阿杰"],
+    records: [
+      {date:"2026-10-01", payer:"我", amount:2800, parts:["我","阿杰"], note:"房租月供", pay:"银行卡"},
+      {date:"2026-10-05", payer:"阿杰", amount:132.8, parts:["我","阿杰"], note:"电费", pay:"支付宝"}
+    ]
+  }
 };
-function cloneDefault(){ return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
-function loadAAData(){
-  try{ const x=JSON.parse(localStorage.getItem(AA_STORAGE_KEY)||"null"); return x&&typeof x==="object"?x:cloneDefault(); }
-  catch(_){ return cloneDefault(); }
-}
-let DATA = loadAAData();
-let __aaSyncBusy=false, __aaSaveTimer=null, __aaCloudStamp="";
-function localSaveAA(){ try{ localStorage.setItem(AA_STORAGE_KEY,JSON.stringify(DATA)); }catch(_){} }
-function aaHeaders(extra={}){ return {apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,...extra}; }
-async function aaFetch(path,opt={}){
-  const c=new AbortController(), t=setTimeout(()=>c.abort(),8000);
-  try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{method:opt.method||"GET",cache:"no-store",signal:c.signal,headers:aaHeaders({Accept:"application/json",...(opt.headers||{})}),body:opt.body});
-    const raw=await r.text(); if(!r.ok) throw new Error(`HTTP ${r.status}: ${raw}`); return raw?JSON.parse(raw):null;
-  }finally{clearTimeout(t)}
-}
-async function loadAACloud(){
-  if(__aaSyncBusy) return; __aaSyncBusy=true;
-  try{
-    const rows=await aaFetch("bookkeeping_state?id=eq.1&select=data_json,updated_at");
-    const row=rows?.[0], cloud=row?.data_json?.__aa_groups;
-    if(cloud&&typeof cloud==="object"&&Object.keys(cloud).length){
-      DATA=cloud; __aaCloudStamp=row.updated_at||""; localSaveAA();
-      if(!DATA[state.group]) state.group=Object.keys(DATA)[0];
-      pickedParts=null; renderAll();
-    }
-  }catch(e){ console.warn("AA cloud read failed",e); } finally{__aaSyncBusy=false;}
-}
-async function saveAACloud(){
-  localSaveAA();
-  try{
-    const rows=await aaFetch("bookkeeping_state?id=eq.1&select=data_json");
-    const existing=(rows?.[0]?.data_json&&typeof rows[0].data_json==="object")?rows[0].data_json:{};
-    const payload={...existing,__aa_groups:DATA,__aa_version:2};
-    const saved=await aaFetch("bookkeeping_state?id=eq.1",{method:"PATCH",headers:{"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({data_json:payload,updated_at:new Date().toISOString()})});
-    __aaCloudStamp=saved?.[0]?.updated_at||__aaCloudStamp;
-  }catch(e){ console.error("AA cloud save failed",e); toast("云端同步失败，已保存在本机"); }
-}
-function persistAA(){
-  localSaveAA(); clearTimeout(__aaSaveTimer); __aaSaveTimer=setTimeout(saveAACloud,120); return true;
-}
+
 /* ============ 状态 ============ */
-const state = {group:Object.keys(DATA)[0] || "周末出游"};
+const state = {group:"周末出游", pickedParts:null};
 const $ = id => document.getElementById(id);
 const el = (tag, cls, html) => {const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n;};
 const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -472,19 +389,14 @@ const AVATAR_COLORS = ["#1B6B53","#3E6E8F","#C96F2B","#B4482E","#8A5A9E","#5A7D3
 function colorOf(name){ let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))%997; return AVATAR_COLORS[h%AVATAR_COLORS.length]; }
 
 /* ============ 结算算法 ============ */
-function splitShares(amount, parts){
-  const list=(parts||[]).filter(Boolean); if(!list.length) return {};
-  const cents=Math.round(Number(amount||0)*100), base=Math.floor(cents/list.length), extra=cents-base*list.length;
-  const out={}; list.forEach((m,i)=>out[m]=(base+(i<extra?1:0))/100); return out;
-}
 function settleCalc(recs, mems){
   const paid={}, share={}, partsCnt={};
   mems.forEach(m=>{paid[m]=0; share[m]=0; partsCnt[m]=0;});
   recs.forEach(r=>{
     paid[r.payer] += r.amount;
     const parts = r.parts && r.parts.length ? r.parts : mems;
-    const shares=splitShares(r.amount,parts);
-    parts.forEach(m=>{ share[m]+=Number(shares[m]||0); partsCnt[m]++; });
+    const per = r.amount/parts.length;
+    parts.forEach(m=>{ share[m]+=per; partsCnt[m]++; });
   });
   const net = mems.map(m=>({
     name:m, paid:Math.round(paid[m]*100)/100, share:Math.round(share[m]*100)/100,
@@ -511,7 +423,7 @@ function renderGroupTabs(){
   const box=$("groupTabs"); box.innerHTML="";
   Object.keys(DATA).forEach(g=>{
     const b=el("button","group-tab"+(g===state.group?" active":""), esc(g));
-    b.onclick=()=>{ state.group=g; pickedParts=null; renderAll(); };
+    b.onclick=()=>{ state.group=g; state.pickedParts=null; renderAll(); };
     box.appendChild(b);
   });
   const add=el("button","group-add","+"); add.title="新建群组";
@@ -519,7 +431,7 @@ function renderGroupTabs(){
     const name=prompt("新群组名称：");
     if(name && name.trim() && !DATA[name.trim()]){
       DATA[name.trim()]={members:[ME], records:[]};
-      state.group=name.trim(); persistAA(); renderAll();
+      state.group=name.trim(); renderAll();
     }else if(name && DATA[name.trim()]){ toast("群组已存在"); }
   };
   box.appendChild(add);
@@ -597,48 +509,43 @@ function renderLedger(){
     const tr=el("tr");
     tr.appendChild(el("td","date num", r.date.slice(5)));
     tr.appendChild(el("td","", `<span class="member-chip" style="color:${colorOf(r.payer)}"><i style="background:${colorOf(r.payer)}"></i>${esc(r.payer)}</span>`));
-    const parts=r.parts&&r.parts.length?r.parts:[r.payer], shares=splitShares(r.amount,parts);
     const partsTd=el("td","");
-    partsTd.innerHTML=parts.map(m=>`<span class="member-chip" style="color:${colorOf(m)}"><i style="background:${colorOf(m)}"></i>${esc(m)} <b class="num">${money(shares[m]||0)}</b></span>`).join("");
+    partsTd.innerHTML=(r.parts&&r.parts.length?r.parts:[r.payer]).map(m=>`<span class="member-chip" style="color:${colorOf(m)}"><i style="background:${colorOf(m)}"></i>${esc(m)}</span>`).join("");
     tr.appendChild(partsTd);
     tr.appendChild(el("td","note", esc(r.note)||"—"));
     tr.appendChild(el("td","amt num", money(r.amount)));
-    const editTd=el("td"); editTd.style.textAlign="center";
-    const edit=el("button","ledger-edit-btn","编辑"); edit.onclick=()=>beginEditRecord(r); editTd.appendChild(edit); tr.appendChild(editTd);
-    const delTd=el("td"); delTd.style.textAlign="center";
-    const del=el("button","del-btn","✕"); del.title="删除这笔记录";
-    del.onclick=()=>{ group().records=group().records.filter(x=>x.id!==r.id); persistAA(); renderAll(); };
-    delTd.appendChild(del); tr.appendChild(delTd); body.appendChild(tr);
+    const td=el("td"); td.style.textAlign="center";
+    const btn=el("button","del-btn","✕"); btn.title="删除这笔";
+    btn.onclick=()=>{
+      if(confirm(`删除这笔 ${money(r.amount)} 的 ${r.note||"消费"}？`)){
+        group().records=group().records.filter(x=>x!==r);
+        renderAll();
+      }
+    };
+    td.appendChild(btn); tr.appendChild(td);
+    body.appendChild(tr);
   });
 }
 
 /* ============ 表单：记一笔 ============ */
-let pickedParts=null, editingRecordId=null;
+let pickedParts=null;
 function renderPayer(){
-  const sel=$("fPayer");
-  const previous=sel.value;
-  sel.innerHTML="";
+  const sel=$("fPayer"); sel.innerHTML="";
   members().forEach(m=>{
     const o=document.createElement("option");
     o.value=m; o.textContent = m===ME ? m+"（我）" : m;
+    o.selected = m===ME;
     sel.appendChild(o);
   });
-  if(previous && members().includes(previous)) sel.value=previous;
-  else if(members().includes(ME)) sel.value=ME;
 }
 function renderParts(){
   const box=$("partsPicker"); box.innerHTML="";
   const mems=members();
   pickedParts = pickedParts ? pickedParts.filter(m=>mems.includes(m)) : mems.slice();
   if(!pickedParts.length) pickedParts=mems.slice();
-  const amt=parseFloat($("fAmount").value)||0;
-  const selectedCount=Math.max(1,pickedParts.length);
-  const shares=splitShares(amt,pickedParts);
   mems.forEach(m=>{
-    const active=pickedParts.includes(m);
-    const shareText=active && amt>0 ? ` <b class="part-share">${money(shares[m]||0)}</b>` : "";
-    const c=el("button","part-chip"+(active?" active":""),
-      `<i style="background:${colorOf(m)}"></i>${esc(m===ME?m+"（我）":m)}${shareText}`);
+    const c=el("button","part-chip"+(pickedParts.includes(m)?" active":""),
+      `<i style="background:${colorOf(m)}"></i>${esc(m===ME?m+"（我）":m)}`);
     c.onclick=()=>{
       if(pickedParts.includes(m)) pickedParts=pickedParts.filter(x=>x!==m);
       else pickedParts.push(m);
@@ -654,25 +561,34 @@ function updateSplitTip(){
   if(!amt||amt<=0){ tip.textContent = split==="equal" ? "平均分摊：每人出 ¥0.00" : "仅付款人承担，不计入分摊"; return; }
   if(split==="equal"){
     const n=pickedParts&&pickedParts.length?pickedParts.length:1;
-    const shares=splitShares(amt,pickedParts||[]); tip.textContent = `平均分摊：${(pickedParts||[]).map(m=>m+" "+money(shares[m]||0)).join(" · ")}（共 ${n} 人）`;
+    tip.textContent = `平均分摊：每人出 ${money(amt/n)}（共 ${n} 人）`;
   }else{
     tip.textContent = "仅付款人承担，不计入他人分摊";
   }
 }
-function beginEditRecord(r){
-  editingRecordId=r.id; $("fAmount").value=r.amount; $("fPayer").value=r.payer; $("fSplit").value=(r.parts?.length===1&&r.parts[0]===r.payer)?"payer":"equal";
-  $("fDate").value=r.date; $("fPay").value=r.pay||"微信"; $("fNote").value=r.note||""; pickedParts=(r.parts||[]).slice();
-  renderParts(); updateSplitTip(); $("saveBtn").textContent="保存修改"; $("fAmount").focus();
-}
 function saveRecord(){
   const amt=parseFloat($("fAmount").value);
   if(!amt||amt<=0){ $("fAmount").focus(); flashSave("请输入有效金额", true); return; }
-  const payer=$("fPayer").value, split=$("fSplit").value;
-  const parts=split==="payer"?[payer]:(pickedParts&&pickedParts.length?pickedParts:[payer]);
-  const rec={id:editingRecordId||("aa_"+Date.now()+"_"+Math.random().toString(36).slice(2,7)),date:$("fDate").value||todayISO(),payer,amount:Math.round(amt*100)/100,parts,note:$("fNote").value.trim()||"AA消费",pay:$("fPay").value};
-  if(editingRecordId){ const i=group().records.findIndex(x=>x.id===editingRecordId); if(i>=0) group().records[i]=rec; else group().records.push(rec); } else group().records.push(rec);
-  editingRecordId=null; persistAA(); $("fAmount").value=""; $("fNote").value=""; pickedParts=null; renderAll();
-  flashSave("已保存并同步");
+  const payer=$("fPayer").value;
+  const split=$("fSplit").value;
+  let parts;
+  if(split==="payer"){ parts=[payer]; }
+  else{
+    parts = pickedParts && pickedParts.length ? pickedParts : [payer];
+  }
+  const rec={
+    date:$("fDate").value||todayISO(),
+    payer,
+    amount:Math.round(amt*100)/100,
+    parts,
+    note:$("fNote").value.trim()||"AA消费",
+    pay:$("fPay").value
+  };
+  group().records.push(rec);
+  $("fAmount").value=""; $("fNote").value="";
+  pickedParts=null;
+  renderAll();
+  flashSave("已记入「"+state.group+"」，分摊已自动计算");
 }
 function flashSave(msg, err){
   const btn=$("saveBtn");
@@ -697,7 +613,7 @@ function renderMembers(){
         const hasRecord=group().records.some(r=>r.payer===m||(r.parts||[]).includes(m));
         if(hasRecord){ toast("该成员已有消费记录，无法直接移除"); return; }
         group().members=members().filter(x=>x!==m);
-        pickedParts=null; persistAA(); renderAll();
+        state.pickedParts=null; renderAll();
       };
       row.appendChild(del);
     }
@@ -710,7 +626,7 @@ $("addMemberBtn").onclick=()=>{
   if(!name){ input.focus(); return; }
   if(members().includes(name)){ toast("成员已存在"); return; }
   group().members.push(name);
-  input.value=""; persistAA();
+  input.value="";
   renderAll();
 };
 $("newMember").addEventListener("keydown", e=>{ if(e.key==="Enter") $("addMemberBtn").click(); });
@@ -909,15 +825,13 @@ function toast(msg){
 $("saveBtn").onclick=saveRecord;
 $("fAmount").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
 $("fNote").addEventListener("keydown", e=>{ if(e.key==="Enter") saveRecord(); });
-$("fAmount").addEventListener("input", ()=>{ renderParts(); updateSplitTip(); });
+$("fAmount").addEventListener("input", updateSplitTip);
 $("fSplit").addEventListener("change", ()=>{ renderParts(); updateSplitTip(); });
 $("fPayer").addEventListener("change", updateSplitTip);
 $("fDate").value=todayISO();
 
 /* ============ 启动 ============ */
-function ensureAAIds(){ Object.values(DATA).forEach(g=>(g.records||[]).forEach((r,i)=>{if(!r.id) r.id=`aa_legacy_${r.date||"x"}_${i}_${Math.round((r.amount||0)*100)}`;})); }
 function renderAll(){
-  ensureAAIds();
   renderGroupTabs();
   renderPayer();
   renderParts();
@@ -930,10 +844,6 @@ function renderAll(){
   updateSplitTip();
 }
 renderAll();
-loadAACloud();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") loadAACloud();});
-window.addEventListener("focus",()=>loadAACloud());
-setInterval(()=>{if(document.visibilityState==="visible"&&!__aaSaveTimer) loadAACloud();},4000);
 if(window.echarts){ initCharts(); renderCharts(); }
 else{
   injectLib("https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js", ok=>{
