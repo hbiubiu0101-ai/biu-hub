@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>省钱雷达 · 酒店机票美团淘宝优惠聚合</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%2338BDF8' stroke-width='1.6'/%3E%3Cpath d='M12 12 L18 8' stroke='%23FB923C' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='2.4' fill='%2322D3EE'/%3E%3C/svg%3E">
+
+<style>
+[hidden]{display:none!important}
+
+:root{
+  --bg0:#0B1220; --bg1:#0E1628; --panel:#111B33; --panel2:#15213D;
+  --line:rgba(148,163,184,.16); --line2:rgba(148,163,184,.28);
+  --txt:#E6EDF7; --sub:#94A3B8; --dim:#64748B;
+  --cyan:#38BDF8; --aqua:#22D3EE; --orange:#FB923C; --amber:#FBBF24;
+  --violet:#A78BFA; --green:#34D399; --rose:#FB7185;
+  --hotel:#38BDF8; --flight:#A78BFA; --mt:#FBBF24; --tb:#FB923C;
+  --r-sm:12px; --r-md:16px; --r-lg:20px;
+  --shadow:0 8px 32px rgba(0,0,0,.38);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(56,189,248,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 20%, rgba(167,139,250,.08), transparent 55%),
+    var(--bg0);
+  color:var(--txt);
+  font-family:"Noto Sans SC",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--aqua);outline-offset:2px;border-radius:6px}
+
+/* ===== 通用布局 ===== */
+.view{display:none;max-width:1200px;margin:0 auto;padding:0 16px 48px}
+.view.active{display:block;animation:viewIn .28s ease}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;position:sticky;top:0;z-index:50;
+  background:rgba(11,18,32,.82);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px;letter-spacing:.5px}
+.brand .logo{width:30px;height:30px;flex:none}
+.top-status{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:12px;color:var(--sub)}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.top-status .mode-tag{background:var(--panel);border:1px solid var(--line2);border-radius:999px;padding:3px 10px;color:var(--txt)}
+.back-btn{
+  display:flex;align-items:center;gap:4px;color:var(--sub);font-size:14px;
+  padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);
+}
+.back-btn:hover{color:var(--txt);border-color:var(--line2)}
+.view-title{display:flex;align-items:baseline;gap:10px;padding:18px 2px 4px;flex-wrap:wrap}
+.view-title h1{font-size:22px;font-weight:900;letter-spacing:.5px}
+.view-title .sub{font-size:12.5px;color:var(--sub)}
+.section-h{display:flex;align-items:center;gap:8px;margin:20px 0 12px;font-size:14px;font-weight:700}
+.section-h::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--aqua)}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700}
+
+/* ===== 首页 · 雷达区 ===== */
+.radar-wrap{position:relative;display:flex;flex-direction:column;align-items:center;padding:26px 0 10px}
+.radar{position:relative;width:min(84vw,360px);height:min(84vw,360px);flex:none}
+.radar svg{position:absolute;inset:0;width:100%;height:100%}
+.radar .grid circle,.radar .grid line{stroke:rgba(148,163,184,.16);stroke-width:1}
+.radar .grid .rim{stroke:rgba(56,189,248,.45)}
+.radar .axis{stroke:rgba(148,163,184,.10)}
+.sweep{
+  position:absolute;inset:4%;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(56,189,248,.42), rgba(34,211,238,.10) 70deg, transparent 90deg);
+  transform-origin:50% 50%;
+  will-change:transform;
+}
+.sweep::after{content:"";position:absolute;top:50%;left:50%;width:2px;height:50%;transform-origin:top;background:linear-gradient(var(--aqua),transparent);box-shadow:0 0 6px var(--aqua)}
+.radar-core{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:4px;z-index:2;pointer-events:none;
+}
+.radar-core .st{font-size:13px;font-weight:700;color:var(--aqua);letter-spacing:1px}
+.radar-core .ct{font-size:11.5px;color:var(--sub)}
+.radar-core .ct b{color:var(--txt)}
+.quad{
+  position:absolute;z-index:3;display:flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:700;color:var(--sub);
+}
+.quad i{width:7px;height:7px;border-radius:50%;box-shadow:0 0 6px currentColor}
+.q-hotel{top:10%;right:6%}.q-hotel i{background:var(--hotel);color:var(--hotel)}
+.q-flight{top:10%;left:6%}.q-flight i{background:var(--flight);color:var(--flight)}
+.q-mt{bottom:10%;left:6%}.q-mt i{background:var(--mt);color:var(--mt)}
+.q-tb{bottom:10%;right:6%}.q-tb i{background:var(--tb);color:var(--tb)}
+.target{
+  position:absolute;width:10px;height:10px;border-radius:50%;z-index:3;
+  background:currentColor;box-shadow:0 0 10px currentColor;
+  transform:translate(-50%,-50%);transition:transform .18s, box-shadow .18s;
+}
+.target .ring{
+  position:absolute;inset:-6px;border-radius:50%;border:1.5px solid currentColor;
+  opacity:0;transform:scale(.4);animation:ringOut .9s ease-out infinite;
+}
+.target.hit{transform:translate(-50%,-50%) scale(1.7)}
+.target.hit .ring{opacity:1}
+@keyframes ringOut{to{opacity:0;transform:scale(2.6)}}
+.radar-ctrl{margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn-main{
+  display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;color:#04121F;
+  background:linear-gradient(135deg,var(--aqua),var(--cyan));border-radius:999px;padding:10px 22px;
+  box-shadow:0 0 18px rgba(56,189,248,.45);transition:transform .15s;
+}
+.btn-main:hover{transform:translateY(-1px)}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--sub);
+  border:1px solid var(--line2);border-radius:999px;padding:9px 18px;background:var(--panel);
+}
+.btn-ghost:hover{color:var(--txt);border-color:var(--cyan)}
+.hit-strip{margin-top:18px;width:100%;max-width:720px}
+.hit-strip .hs-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);margin-bottom:8px}
+.hit-strip .hs-h b{color:var(--txt)}
+.hit-list{display:flex;flex-direction:column;gap:8px}
+.hit-item{
+  display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:10px 14px;animation:hitIn .4s ease;
+}
+@keyframes hitIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+.hit-item .m-tag{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(148,163,184,.1)}
+.hit-item .hi-main{flex:1;min-width:0}
+.hit-item .hi-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hit-item .hi-meta{font-size:11.5px;color:var(--dim);margin-top:1px}
+.hit-item .hi-price{font-weight:900;font-size:15px;flex:none}
+.hit-item .hi-price small{font-size:11px;font-weight:600;color:var(--dim);text-decoration:line-through}
+.hit-item .go{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--sub);border:1px solid var(--line2);flex:none}
+.hit-item .go:hover{color:var(--txt);border-color:var(--cyan)}
+
+/* ===== 首页 · 快捷筛选与模块入口 ===== */
+.quick{margin:8px auto 0;max-width:720px}
+.quick .qrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);
+  border:1px solid var(--line2);border-radius:999px;padding:7px 14px;background:var(--panel);
+}
+.chip:hover{color:var(--txt)}
+.chip.on{color:#04121F;background:linear-gradient(135deg,var(--aqua),var(--cyan));border-color:transparent;font-weight:700}
+.entry-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+.entry-card{
+  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:16px;overflow:hidden;transition:transform .15s,border-color .15s;cursor:pointer;
+}
+.entry-card:hover{transform:translateY(-2px);border-color:var(--line2)}
+.entry-card .ec-bg{position:absolute;inset:auto -20% -40% auto;width:70%;height:70%;border-radius:50%;filter:blur(34px);opacity:.16;pointer-events:none}
+.entry-card .ec-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(148,163,184,.1)}
+.entry-card h3{font-size:15.5px;font-weight:900;margin-top:12px}
+.entry-card p{font-size:11.5px;color:var(--sub);margin-top:3px;line-height:1.5}
+.entry-card .ec-num{position:absolute;right:14px;top:14px;font-size:20px;font-weight:900;opacity:.9}
+.entry-card .ec-go{position:absolute;right:14px;bottom:12px;display:flex;align-items:center;gap:2px;font-size:12px;color:var(--sub)}
+.entry-card:hover .ec-go{color:var(--txt)}
+
+/* ===== 子页 · 筛选器 ===== */
+.filter-bar{
+  display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:12px;margin:12px 0 6px;
+}
+.f-group{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f-group label{font-size:11px;color:var(--dim);font-weight:700}
+.f-control{
+  background:var(--bg1);border:1px solid var(--line2);border-radius:10px;color:var(--txt);
+  font-size:14px;padding:8px 12px;min-height:38px;
+}
+select.f-control{appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.f-control:focus{border-color:var(--cyan);outline:none}
+.f-reset{align-self:center;font-size:12.5px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:8px 14px;background:var(--bg1)}
+.f-reset:hover{color:var(--txt);border-color:var(--line2)}
+.sort-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);padding:4px 2px 12px;flex-wrap:wrap}
+.sort-line .so{font-size:12.5px;color:var(--sub);padding:4px 10px;border-radius:999px}
+.sort-line .so.on{color:var(--txt);background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.4)}
+.result-meta{font-size:12px;color:var(--dim);margin:2px 2px 10px}
+
+/* ===== 子页 · 卡片 ===== */
+.card-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.card{
+  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px;display:flex;gap:12px;cursor:pointer;transition:transform .15s,border-color .15s;
+}
+.card:hover{transform:translateY(-2px);border-color:var(--line2)}
+.card .thumb{
+  width:72px;height:72px;border-radius:12px;flex:none;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;background:rgba(148,163,184,.08);
+}
+.card .thumb .t-ic{position:relative;z-index:1}
+.card .thumb .t-bg{position:absolute;inset:0;filter:blur(16px);opacity:.5}
+.card .c-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.card .c-name{font-size:14.5px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.card .c-meta{font-size:11.5px;color:var(--dim);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.card .c-meta b{color:var(--sub);font-weight:600}
+.card .c-price{display:flex;align-items:baseline;gap:6px;margin-top:auto;padding-top:8px}
+.card .c-price .now{font-size:19px;font-weight:900;color:var(--orange)}
+.card .c-price .now small{font-size:12px;color:var(--dim)}
+.card .c-price .old{font-size:12px;color:var(--dim);text-decoration:line-through}
+.card .c-tags{position:absolute;top:12px;right:12px;display:flex;gap:5px;flex-direction:column;align-items:flex-end}
+.tag-disc{background:rgba(251,146,60,.16);color:var(--orange);border:1px solid rgba(251,146,60,.35)}
+.tag-tier{background:rgba(56,189,248,.14);color:var(--aqua);border:1px solid rgba(56,189,248,.35)}
+.tag-type{background:rgba(167,139,250,.14);color:var(--violet);border:1px solid rgba(167,139,250,.35)}
+.tag-tag{background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+.empty{
+  border:1px dashed var(--line2);border-radius:var(--r-md);padding:34px 16px;text-align:center;
+  color:var(--sub);font-size:13.5px;line-height:1.7;
+}
+.empty b{color:var(--txt)}
+
+/* ===== 速览图 ===== */
+.chart-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 10px 6px;margin:12px 0 4px}
+.chart-card .cc-h{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;padding:0 4px 6px}
+.chart-card .cc-h .tip{font-size:11px;color:var(--dim);font-weight:400}
+.chart-box{width:100%;min-height:120px}
+
+/* ===== 详情弹层 ===== */
+.modal-mask{position:fixed;inset:0;background:rgba(4,8,16,.72);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-end;justify-content:center;padding:0}
+.modal-mask.open{display:flex}
+.modal{
+  width:100%;max-width:560px;background:var(--bg1);border:1px solid var(--line2);border-radius:20px 20px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:86vh;overflow:auto;
+  animation:modalUp .25s ease;
+}
+@keyframes modalUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.modal .m-top{display:flex;align-items:flex-start;gap:12px}
+.modal .m-ic{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;background:rgba(148,163,184,.1)}
+.modal h2{font-size:17px;font-weight:900;line-height:1.35}
+.modal .m-sub{font-size:12px;color:var(--sub);margin-top:3px}
+.modal .m-close{margin-left:auto;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--sub);border:1px solid var(--line2);flex:none}
+.modal .m-close:hover{color:var(--txt)}
+.m-price{display:flex;align-items:baseline;gap:8px;margin:14px 0 2px}
+.m-price .now{font-size:26px;font-weight:900;color:var(--orange)}
+.m-price .old{font-size:14px;color:var(--dim);text-decoration:line-through}
+.m-save{font-size:12.5px;color:var(--green);font-weight:700}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.m-cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.m-cell .k{font-size:11px;color:var(--dim)}
+.m-cell .v{font-size:13.5px;font-weight:700;margin-top:2px}
+.m-note{font-size:11.5px;color:var(--dim);line-height:1.6;border-left:3px solid var(--line2);padding:2px 0 2px 10px;margin:10px 0 14px}
+.m-act{display:flex;gap:10px}
+.btn-go{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:14.5px;font-weight:700;color:#04121F;
+  background:linear-gradient(135deg,var(--aqua),var(--cyan));border-radius:12px;padding:12px;
+}
+.btn-plain{
+  flex:1;font-size:14px;color:var(--sub);border:1px solid var(--line2);border-radius:12px;padding:12px;
+}
+.btn-plain:hover{color:var(--txt)}
+
+/* ===== 设置页 ===== */
+.set-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;margin-bottom:12px}
+.set-card h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.set-card .sc-desc{font-size:12.5px;color:var(--sub);line-height:1.7;margin-top:6px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.switch{position:relative;width:46px;height:26px;border-radius:999px;background:var(--bg0);border:1px solid var(--line2);transition:background .2s;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--sub);transition:transform .2s,background .2s}
+.switch.on{background:rgba(56,189,248,.25);border-color:var(--cyan)}
+.switch.on::after{transform:translateX(20px);background:var(--aqua)}
+.api-item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.api-item .ai-h{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.api-item .ai-h .st{font-size:10.5px;padding:2px 7px;border-radius:999px;font-weight:700}
+.st-free{background:rgba(52,211,153,.14);color:var(--green)}
+.st-auth{background:rgba(251,191,36,.14);color:var(--amber)}
+.st-none{background:rgba(148,163,184,.14);color:var(--sub)}
+.api-item .ai-desc{font-size:11.5px;color:var(--dim);line-height:1.6;margin-top:5px}
+.api-item .ai-field{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+.api-item label{font-size:11px;color:var(--dim)}
+.api-item input{
+  background:var(--bg1);border:1px solid var(--line2);border-radius:9px;color:var(--txt);
+  font-size:16px;padding:9px 12px;width:100%;
+}
+.api-item input:focus{border-color:var(--cyan);outline:none}
+.api-item .ai-save{font-size:12.5px;color:var(--cyan);border:1px solid rgba(56,189,248,.4);border-radius:9px;padding:8px;margin-top:8px;width:100%}
+.api-item .ai-save:hover{background:rgba(56,189,248,.1)}
+
+/* ===== toast ===== */
+.toast-wrap{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;width:min(92vw,420px);pointer-events:none}
+.toast{
+  background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:10px 14px;
+  font-size:13px;box-shadow:var(--shadow);animation:toastIn .3s ease;display:flex;align-items:center;gap:10px;
+}
+.toast .t-ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none}
+.toast b{color:var(--txt)}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
+/* ===== footer ===== */
+.foot{
+  max-width:1200px;margin:0 auto;padding:20px 16px 34px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--dim);line-height:1.8;
+}
+.foot b{color:var(--sub)}
+
+@media (min-width:720px){
+  .card-grid{grid-template-columns:repeat(2,1fr)}
+  .entry-grid{grid-template-columns:repeat(4,1fr)}
+  .radar{width:min(44vw,380px);height:min(44vw,380px)}
+  .modal-mask{align-items:center;padding:20px}
+  .modal{border-radius:20px}
+}
+@media (min-width:1080px){
+  .card-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .sweep{animation:none}
+}
+
+.workspace{max-width:1200px;margin:18px auto;padding:0 16px}.workspace .set-card{border-color:rgba(56,189,248,.3)}.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:12px 0}.form-grid label{display:flex;flex-direction:column;gap:5px;color:var(--sub);font-size:12px}.form-grid input,.form-grid select{width:100%}.tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.notice{font-size:13px;line-height:1.8;color:var(--sub);padding:12px;background:var(--bg1);border-radius:10px}.notice strong{color:var(--amber)}.compare-row{display:flex;gap:12px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--line)}.compare-row span{flex:1;min-width:100px}#quoteList{max-height:400px;overflow:auto}input[type=date]{color-scheme:dark}button:disabled{opacity:.5;cursor:wait}.card .c-name{padding-right:65px}.modal-mask.open{z-index:150}.foot{margin-top:20px}@media(max-width:480px){.top-status{gap:6px}.brand{font-size:15px}.form-grid{grid-template-columns:1fr 1fr}.tools .btn-ghost{padding:8px 12px}.topbar{padding:12px}.card .c-tags{position:static;max-width:75px}.card .c-name{padding-right:0}}
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部状态栏 ===== -->
+<header class="topbar"><a href="../../" class="btn-ghost" aria-label="返回智能工作台">← 工作台</a>
+  <div class="brand" data-nav="#/" role="button" tabindex="0" aria-label="返回首页">
+    <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.6">
+      <circle cx="12" cy="12" r="9.5"/>
+      <path d="M12 12 L19 5.5" stroke="#FB923C" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="12" cy="12" r="2.2" fill="#22D3EE" stroke="none"/>
+    </svg>
+    省钱雷达
+  </div>
+  <div class="top-status">
+    <span class="pulse-dot" id="scanDot"></span>
+    <span id="scanState">扫描中</span>
+    <span class="mode-tag" id="modeTag">演示数据</span>
+  </div>
+</header>
+
+<!-- ===== 视图：首页 ===== -->
+<section class="view active" id="view-home">
+  <div class="radar-wrap">
+    <div class="radar" id="radarBox">
+      <svg class="grid" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="rim" cx="100" cy="100" r="96"/>
+        <circle cx="100" cy="100" r="72"/>
+        <circle cx="100" cy="100" r="48"/>
+        <circle cx="100" cy="100" r="24"/>
+        <line class="axis" x1="4" y1="100" x2="196" y2="100"/>
+        <line class="axis" x1="100" y1="4" x2="100" y2="196"/>
+        <line class="axis" x1="32" y1="32" x2="168" y2="168"/>
+        <line class="axis" x1="168" y1="32" x2="32" y2="168"/>
+      </svg>
+      <div class="sweep" id="sweep"></div>
+      <div class="radar-core">
+        <div class="st" id="radarState">扫描中…</div>
+        <div class="ct" id="radarCount">已发现 <b>0</b> 个目标</div>
+      </div>
+      <div class="quad q-hotel"><i></i>酒店</div>
+      <div class="quad q-flight"><i></i>机票</div>
+      <div class="quad q-mt"><i></i>美团</div>
+      <div class="quad q-tb"><i></i>淘宝</div>
+      <div id="targetLayer"></div>
+    </div>
+    <div class="radar-ctrl">
+      <button class="btn-main" id="scanBtn" aria-label="开始或暂停扫描">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <span id="scanBtnTxt">暂停扫描</span>
+      </button>
+      <button class="btn-ghost" data-nav="#/settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        数据源设置
+      </button>
+    </div>
+
+    <div class="hit-strip">
+      <div class="hs-h">最近命中 <b id="hitTotal">0</b> 条优惠</div>
+      <div class="hit-list" id="hitList"></div>
+    </div>
+  </div>
+
+  <div class="quick">
+    <div class="section-h">快捷筛选</div>
+    <div class="qrow" id="quickRow"></div>
+  </div>
+
+  <div class="section-h">四个扫描频道</div>
+  <div class="entry-grid" id="entryGrid"></div>
+</section>
+
+<!-- ===== 视图：子页通用壳 ===== -->
+<section class="view" id="view-sub">
+  <div class="view-title" id="subTitle"></div>
+  <div class="chart-card">
+    <div class="cc-h"><span id="chartTitle">速览</span><span class="tip">演示数据</span></div>
+    <div class="chart-box" id="chartBox"></div>
+  </div>
+  <div class="filter-bar" id="filterBar"></div>
+  <div class="sort-line" id="sortLine"></div>
+  <div class="result-meta" id="resultMeta"></div>
+  <div class="card-grid" id="subGrid"></div>
+</section>
+
+<!-- ===== 视图：设置 ===== -->
+<section class="view" id="view-settings">
+  <div class="view-title"><h1>数据源设置</h1><span class="sub">演示数据 / 真实接口接入预留</span></div>
+
+<div class="set-card"><h3>接口实况</h3><p class="sc-desc">报价本和收藏在浏览器内保存。此 GitHub Pages 版本不包含接口服务端，不收集平台密钥。</p><button class="btn-ghost" id="checkApi">查看接入状态</button><div id="apiReport" class="sc-desc">静态网页 · 实时报价未接通</div></div>
+<div class="set-card"><h3>接入条件</h3><p class="sc-desc">飞猪酒店：AppKey + AppSecret + 应用接口权限，查询还需要标准酒店 ID 和入住、离店日期。<br>飞猪机票：AppKey + AppSecret + 应用接口权限，需出发/到达城市三字码与日期。<br>淘宝客：需申请相应权限及推广位；本版未接商品搜索适配器。<br>美团联盟：确有商品与推广链接能力，需联盟凭据和签名；本版未接商品搜索适配器。<br>密钥只在服务端环境变量设置，本页面不收集密钥。</p></div>
+<div class="set-card"><h3>数据备份</h3><p class="sc-desc">手动报价、收藏、筛选保存在当前浏览器，不跨设备同步。可导出 JSON 备份，再到另一设备导入。</p><button class="btn-ghost" id="exportData">导出备份</button><label class="btn-ghost">导入备份<input type="file" id="importData" accept="application/json" hidden></label><div id="backupMessage" role="status"></div></div></section>
+
+<!-- ===== 详情弹层 / toast ===== -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modalBox"></div>
+</div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<footer class="foot">
+  <b>省钱雷达</b> · 报价收藏与对比<br>手动记录不代表平台核价；示例数据独立展示。官方报价以结算页面为准，优惠可能受会员、库存、税费和使用条件影响。
+</footer>
+
+<script>
+"use strict";
+/* ===== 演示数据（内置，非真实在售信息） ===== */
+var HOTELS=[
+ {id:"h1",name:"广州塔景观酒店",tier:"高档",type:"商务",price:588,original:728,rating:4.8,dist:"0.8km",tag:"满300减40",accent:"#38BDF8"},
+ {id:"h2",name:"珠江新城雅致民宿",tier:"舒适",type:"民宿",price:328,original:468,rating:4.7,dist:"1.2km",tag:"新客立减50",accent:"#34D399"},
+ {id:"h3",name:"北京路步行街经济酒店",tier:"经济",type:"连锁",price:158,original:229,rating:4.2,dist:"0.5km",tag:"会员价8.5折",accent:"#94A3B8"},
+ {id:"h4",name:"长隆度假主题酒店",tier:"豪华",type:"度假",price:899,original:1188,rating:4.9,dist:"15km",tag:"含双人早餐",accent:"#FB923C"},
+ {id:"h5",name:"白云机场快捷酒店",tier:"经济",type:"商务",price:188,original:259,rating:4.1,dist:"1.5km",tag:"深夜特价",accent:"#94A3B8"},
+ {id:"h6",name:"琶洲会展商务酒店",tier:"舒适",type:"商务",price:268,original:368,rating:4.4,dist:"9km",tag:"连住满减",accent:"#38BDF8"},
+ {id:"h7",name:"东山口老洋房民宿",tier:"舒适",type:"民宿",price:298,original:399,rating:4.8,dist:"3km",tag:"周末特惠",accent:"#34D399"},
+ {id:"h8",name:"天河城连锁精选",tier:"舒适",type:"连锁",price:258,original:328,rating:4.5,dist:"2km",tag:"满200减30",accent:"#A78BFA"},
+ {id:"h9",name:"沙面岛欧式精品酒店",tier:"高档",type:"度假",price:468,original:620,rating:4.7,dist:"5km",tag:"赠下午茶",accent:"#FB923C"},
+ {id:"h10",name:"珠江夜游景观房",tier:"豪华",type:"度假",price:1099,original:1488,rating:4.9,dist:"4km",tag:"提前7天8折",accent:"#FB923C"},
+ {id:"h11",name:"上下九商旅酒店",tier:"经济",type:"连锁",price:168,original:228,rating:4.0,dist:"6km",tag:"团购立减",accent:"#94A3B8"},
+ {id:"h12",name:"科学城行政公寓",tier:"高档",type:"商务",price:518,original:688,rating:4.6,dist:"11km",tag:"连住赠接驳",accent:"#38BDF8"}
+];
+var FLIGHTS=[
+ {id:"f1",name:"CZ3401 广州→北京",airline:"南方航空",from:"广州",to:"北京",dep:"07:35",arr:"10:45",price:520,original:860,discount:"6.0折",tag:"早鸟特价"},
+ {id:"f2",name:"MU5307 广州→上海",airline:"东方航空",from:"广州",to:"上海",dep:"08:10",arr:"10:20",price:380,original:660,discount:"5.8折",tag:"会员日"},
+ {id:"f3",name:"CA1302 广州→成都",airline:"中国国航",from:"广州",to:"成都",dep:"09:20",arr:"11:55",price:430,original:720,discount:"6.0折",tag:"特价舱"},
+ {id:"f4",name:"HU7163 广州→海口",airline:"海南航空",from:"广州",to:"海口",dep:"12:40",arr:"13:55",price:280,original:520,discount:"5.4折",tag:"下午特价"},
+ {id:"f5",name:"3U8738 广州→重庆",airline:"四川航空",from:"广州",to:"重庆",dep:"14:15",arr:"16:30",price:350,original:610,discount:"5.7折",tag:"新航线特惠"},
+ {id:"f6",name:"ZH9502 广州→杭州",airline:"深圳航空",from:"广州",to:"杭州",dep:"16:50",arr:"19:05",price:460,original:740,discount:"6.2折",tag:"往返更省"}
+];
+var MEITUAN=[
+ {id:"m1",name:"太二酸菜鱼双人套餐",category:"美食",price:108,original:168,discount:"6.4折",dist:"1.2km",sales:"3.2万",tag:"双人套餐"},
+ {id:"m2",name:"万达影城IMAX电影票",category:"电影",price:39.9,original:79,discount:"5.0折",dist:"4km",sales:"1.1万",tag:"周三特惠"},
+ {id:"m3",name:"悦榕SPA全身护理",category:"丽人",price:168,original:398,discount:"4.2折",dist:"2km",sales:"8600",tag:"新客价"},
+ {id:"m4",name:"宝桑园汗蒸门票",category:"休闲",price:49,original:99,discount:"4.9折",dist:"7km",sales:"2.4万",tag:"工作日票"},
+ {id:"m5",name:"点都德早茶套餐",category:"美食",price:78,original:128,discount:"6.1折",dist:"3.5km",sales:"5.6万",tag:"早茶套餐"},
+ {id:"m6",name:"长隆亲子乐园家庭票",category:"休闲",price:128,original:198,discount:"6.5折",dist:"15km",sales:"9800",tag:"家庭票"}
+];
+var TAOBAO=[
+ {id:"t1",name:"米家智能电饭煲",shop:"小米官方旗舰店",price:299,original:399,coupon:100,sales:"5.6万",tag:"券后价"},
+ {id:"t2",name:"蕉下冰丝防晒衣",shop:"蕉下旗舰店",price:129,original:229,coupon:100,sales:"8.2万",tag:"第2件半价"},
+ {id:"t3",name:"网易严选人体工学椅",shop:"网易严选",price:459,original:699,coupon:240,sales:"1.9万",tag:"大额券"},
+ {id:"t4",name:"百草味坚果礼盒",shop:"百草味旗舰店",price:69.9,original:129,coupon:60,sales:"12万",tag:"双11同价"},
+ {id:"t5",name:"罗技静音无线鼠标",shop:"罗技官方旗舰店",price:119,original:179,coupon:60,sales:"4.3万",tag:"限时秒杀"},
+ {id:"t6",name:"优衣库摇粒绒外套",shop:"优衣库旗舰店",price:199,original:299,coupon:100,sales:"7.8万",tag:"预售特价"}
+];
+var MODULES={
+ hotel:{name:"酒店",color:"#38BDF8",data:HOTELS},
+ flight:{name:"机票",color:"#A78BFA",data:FLIGHTS},
+ meituan:{name:"美团",color:"#FBBF24",data:MEITUAN},
+ taobao:{name:"淘宝",color:"#FB923C",data:TAOBAO}
+};
+var MOD_META={
+ hotel:{title:"酒店优惠雷达",sub:"酒店报价查询与收藏",chartTitle:"各档次报价均值（元）"},
+ flight:{title:"机票优惠雷达",sub:"按城市与日期查询航班",chartTitle:"各航线最低价（元）"},
+ meituan:{title:"美团优惠雷达",sub:"本地生活团购折扣扫描",chartTitle:"各品类券后均价（元）"},
+ taobao:{title:"淘宝优惠雷达",sub:"好券商品折扣扫描",chartTitle:"各商品券面额（元）"}
+};
+var TIERS=["经济","舒适","高档","豪华"], TYPES=["商务","民宿","度假","连锁"];
+var FLIGHT_CITIES=["北京","上海","成都","海口","重庆","杭州"];
+var MT_CATS=["美食","电影","丽人","休闲"];
+var TB_CATS=["家电","服饰","家居","零食","数码","穿搭"];
+
+/* ===== 工具 ===== */
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function yuan(n){return (Math.round(n*100)/100).toLocaleString("zh-CN")}
+var $=function(s){return document.querySelector(s)};
+function toast(html,color){
+  var w=$("#toastWrap");var t=document.createElement("div");t.className="toast";
+  t.innerHTML='<span class="t-ic" style="background:'+(color||"rgba(56,189,248,.15)")+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+(color||"#38BDF8")+'" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.2h.01"/></svg></span><span>'+html+"</span>";
+  w.appendChild(t);setTimeout(function(){t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(function(){t.remove()},320)},2400);
+}
+
+/* ===== 数据模式 ===== */
+var MODE="demo"; /* demo / api */
+try{MODE=localStorage.getItem("sr_mode")||"demo"}catch(e){}
+function oldSetMode(m,silent){
+  MODE=m;
+  try{localStorage.setItem("sr_mode",m)}catch(e){}
+  $("#modeTag").textContent=m==="demo"?"演示数据":"API 待接入";
+  $("#modeSwitch").classList.toggle("on",m==="demo");
+  $("#modeSwitch").setAttribute("aria-checked",m==="demo");
+  if(!silent)toast(m==="demo"?"已切换为演示数据":"已切换为真实数据模式，当前为接口配置预留",m==="demo"?"#38BDF8":"#FB923C");
+}
+
+/* ===== 雷达扫描 ===== */
+var sweepAngle=0, scanning=true, hitCount=0, targets=[], hitCooldown={}, reduced=false;
+if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)reduced=true;
+var TARGETS=[
+ {a:28,r:0.62,mod:"hotel"},{a:96,r:0.40},{a:152,r:0.55,mod:"flight"},
+ {a:198,r:0.38},{a:228,r:0.66,mod:"meituan"},{a:268,r:0.72},
+ {a:322,r:0.50,mod:"taobao"},{a:352,r:0.20}
+];
+function placeTargets(){
+  var layer=$("#targetLayer");layer.innerHTML="";
+  TARGETS.forEach(function(t,i){
+    var el=document.createElement("div");
+    var c=t.mod?MODULES[t.mod].color:"#64748B";
+    el.className="target";el.style.color=c;
+    el.style.left=(50+t.r*50*Math.cos(t.a*Math.PI/180)).toFixed(2)+"%";
+    el.style.top=(50+t.r*50*Math.sin(t.a*Math.PI/180)).toFixed(2)+"%";
+    el.innerHTML='<span class="ring"></span>';
+    el.setAttribute("data-mod",t.mod||"");el.setAttribute("data-idx",i);
+    layer.appendChild(el);t.el=el;
+  });
+}
+function hitTarget(i){
+  var t=TARGETS[i];if(!t||!t.el)return;
+  var el=t.el;el.classList.add("hit");
+  setTimeout(function(){el.classList.remove("hit")},950);
+  if(!t.mod)return; /* 非频道目标只闪烁 */
+  var pool=MODULES[t.mod].data;
+  if(!pool.length)return; var item=pool[Math.floor(Math.random()*pool.length)];
+  addHit(item,t.mod);
+}
+function addHit(item,mod){
+  hitCount++;$("#hitTotal").textContent=hitCount;
+  var list=$("#hitList");
+  var div=document.createElement("div");div.className="hit-item";
+  var meta=mod==="hotel"?item.tier+" · "+item.type:mod==="flight"?item.airline+" "+item.dep+" 起飞":mod==="meituan"?item.category+" · "+item.dist:item.shop;
+  var tag=item.tag||item.discount||"";
+  div.innerHTML=
+    '<span class="m-tag" style="background:'+MODULES[mod].color+'1a"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+MODULES[mod].color+'" stroke-width="2">'+(mod==="hotel"?'<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>':mod==="flight"?'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>':mod==="meituan"?'<path d="M3 11h18M12 11V4M7 11v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6"/>':'<path d="M20.6 13.4 11 3.8 3 5l1.2 8 9.6 9.6a2 2 0 0 0 2.8 0l4-4a2 2 0 0 0 0-2.2z"/><circle cx="7.5" cy="7.5" r="1.5"/>')+'</svg></span>'+
+    '<span class="hi-main"><div class="hi-name">'+esc(item.name)+'</div><div class="hi-meta">'+esc(meta)+' · '+esc(tag)+'</div></span>'+
+    '<span class="hi-price num">¥'+yuan(item.price)+' <small>'+yuan(item.original)+'</small></span>'+
+    '<button class="go" data-nav="#/'+mod+'" aria-label="去'+MODULES[mod].name+'频道查看"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>';
+  list.insertBefore(div,list.firstChild);
+  while(list.children.length>3)list.lastChild.remove();
+}
+var reducedTimer=null;
+function startReducedTimer(){
+  if(reducedTimer)clearInterval(reducedTimer);
+  reducedTimer=setInterval(function(){
+    var pool=TARGETS.filter(function(t){return t.mod});
+    var pick=pool[Math.floor(Math.random()*pool.length)];
+    hitTarget(TARGETS.indexOf(pick));
+  },3800);
+}
+function radarLoop(ts){
+  if(scanning&&!reduced){
+    sweepAngle=(sweepAngle+0.55)%360;
+    $("#sweep").style.transform="rotate("+sweepAngle+"deg)";
+    TARGETS.forEach(function(t,i){
+      if(!t.mod)return;
+      var diff=Math.abs(t.a-sweepAngle);
+      if(diff>180)diff=360-diff;
+      if(diff<7&&!hitCooldown[i]){
+        hitCooldown[i]=true;hitTarget(i);
+        setTimeout(function(){hitCooldown[i]=false},2600);
+      }
+    });
+  }
+  requestAnimationFrame(radarLoop);
+}
+
+/* ===== 路由 ===== */
+var current="#/";
+function navigate(hash){
+  if(!["#/","#/settings","#/hotel","#/flight","#/meituan","#/taobao"].includes(hash))hash="#/";
+  if(location.hash!==hash){location.hash=hash;return;}
+  current=hash;
+  if(typeof panel!=="undefined"&&panel)panel.style.display=hash==="#/settings"?"none":"";
+  document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active")});
+  var home=hash==="#/";
+  $("#view-home").classList.toggle("active",home);
+  $("#view-settings").classList.toggle("active",hash==="#/settings");
+  $("#view-sub").classList.toggle("active",!home&&hash!=="#/settings");
+  var sub=hash.replace("#/","");
+  if(!home&&hash!=="#/settings"&&MOD_META[sub]){renderSub(sub)}
+  if(hash==="#/settings")renderSettings();
+  window.scrollTo(0,0);
+  if(home)startRadar();else pauseRadar();
+}
+function startRadar(){scanning=true;$("#scanState").textContent="扫描中";$("#scanBtnTxt").textContent="暂停扫描";$("#radarState").textContent="扫描中…";$("#scanDot").style.background="#34D399";if(reduced)startReducedTimer()}
+function pauseRadar(){scanning=false;$("#scanState").textContent="已暂停";$("#scanBtnTxt").textContent="继续扫描";$("#radarState").textContent="扫描已暂停";$("#scanDot").style.background="#94A3B8";if(reducedTimer){clearInterval(reducedTimer);reducedTimer=null}}
+$("#scanBtn").addEventListener("click",function(){scanning?pauseRadar():startRadar()});
+window.addEventListener("hashchange",function(){navigate(location.hash||"#/")});
+
+/* ===== 首页渲染 ===== */
+function renderHome(){
+  var qr=$("#quickRow");qr.innerHTML="";
+  [["城市",["广州"]],["档次",TIERS],["类型",TYPES]].forEach(function(g){
+    g[1].forEach(function(v){
+      var b=document.createElement("button");b.className="chip"+(v==="广州"?" on":"");
+      b.textContent=v;
+      if(v==="广州"){b.addEventListener("click",function(){toast("当前演示数据仅覆盖广州","#38BDF8");navigate("#/hotel")})}
+      else{b.addEventListener("click",function(){setPrefilter("hotel",g[0]==="档次"?"tier":"type",v);navigate("#/hotel")})}
+      qr.appendChild(b);
+    });
+  });
+  var eg=$("#entryGrid");eg.innerHTML="";
+  Object.keys(MODULES).forEach(function(k){
+    var m=MODULES[k];var d=m.data;
+    var card=document.createElement("div");card.className="entry-card";card.setAttribute("data-nav","#/"+k);card.setAttribute("tabindex","0");card.setAttribute("role","button");
+    card.innerHTML=
+      '<span class="ec-bg" style="background:'+m.color+'"></span>'+
+      '<span class="ec-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+m.color+'" stroke-width="2">'+(k==="hotel"?'<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>':k==="flight"?'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>':k==="meituan"?'<path d="M3 11h18M12 11V4M7 11v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6"/>':'<path d="M20.6 13.4 11 3.8 3 5l1.2 8 9.6 9.6a2 2 0 0 0 2.8 0l4-4a2 2 0 0 0 0-2.2z"/><circle cx="7.5" cy="7.5" r="1.5"/>')+'</svg></span>'+
+      '<h3>'+m.name+'</h3><p>'+MOD_META[k].sub+'</p>'+
+      '<span class="ec-num num" style="color:'+m.color+'">'+d.length+'</span>'+
+      '<span class="ec-go">去扫描 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>';
+    eg.appendChild(card);
+    card.addEventListener("click",function(){navigate("#/"+k)});
+    card.addEventListener("keydown",function(e){if(e.key==="Enter")navigate("#/"+k)});
+  });
+}
+function setPrefilter(mod,key,val){prefilter={mod:mod,key:key,val:val}}
+var prefilter=null;
+
+/* ===== 事件委托：导航 ===== */
+document.addEventListener("click",function(e){
+  var n=e.target.closest("[data-nav]");
+  if(n){navigate(n.getAttribute("data-nav"));return}
+});
+/* ===== 子页：状态与筛选 ===== */
+var subState={
+ hotel:{tier:"",type:""},
+ flight:{to:"",date:""},
+ meituan:{cat:"",disc:""},
+ taobao:{disc:""}
+};
+var subSort={hotel:"price",flight:"price",meituan:"disc",taobao:"coupon"};
+
+function selOpt(id,vals,cur,label){
+  var fg=document.createElement("div");fg.className="f-group";
+  var lb=document.createElement("label");lb.textContent=label;lb.setAttribute("for",id);
+  var s=document.createElement("select");s.className="f-control";s.id=id;
+  var o0=document.createElement("option");o0.value="";o0.textContent="全部";
+  s.appendChild(o0);
+  vals.forEach(function(v){
+    var o=document.createElement("option");o.value=v;o.textContent=v;if(cur===v)o.selected=true;
+    s.appendChild(o);
+  });
+  fg.appendChild(lb);fg.appendChild(s);return fg;
+}
+function applyFilter(sub){
+  var s=subState[sub],d=MODULES[sub].data;
+  var out=d.slice();
+  if(sub==="hotel"){if(s.tier)out=out.filter(function(x){return x.tier===s.tier});if(s.type)out=out.filter(function(x){return x.type===s.type})}
+  if(sub==="flight"){if(s.to)out=out.filter(function(x){return x.to===s.to});if(s.date)out=out.filter(function(x){return x.date===s.date})}
+  if(sub==="meituan"){if(s.cat)out=out.filter(function(x){return x.category===s.cat});if(s.disc==="7")out=out.filter(function(x){return parseFloat(x.discount)<7});if(s.disc==="5")out=out.filter(function(x){return parseFloat(x.discount)<=5})}
+  if(sub==="taobao"){if(s.disc==="100")out=out.filter(function(x){return x.coupon>=100});if(s.disc==="60")out=out.filter(function(x){return x.coupon>=60&&x.coupon<100})}
+  return out;
+}
+function sortItems(sub,arr){
+  var k=subSort[sub];
+  arr.sort(function(a,b){
+    if(sub==="hotel"&&k==="rating")return b.rating-a.rating;
+    if(sub==="hotel")return a.price-b.price;
+    if(sub==="flight"&&k==="disc")return parseFloat(a.discount)-parseFloat(b.discount);
+    if(sub==="flight")return a.price-b.price;
+    if(sub==="meituan"&&k==="sales")return salesValue(b.sales)-salesValue(a.sales);
+    if(sub==="meituan")return parseFloat(a.discount)-parseFloat(b.discount);
+    if(sub==="taobao"&&k==="sales")return salesValue(b.sales)-salesValue(a.sales);
+    return b.coupon-a.coupon;
+  });
+  return arr;
+}
+function renderSub(sub){
+  var meta=MOD_META[sub],m=MODULES[sub];
+  $("#subTitle").innerHTML="<button class='back-btn' data-nav='#/'><svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M19 12H5M11 18l-6-6 6-6'/></svg>首页</button><h1>"+meta.title+"</h1><span class='sub'>"+meta.sub+"</span>";
+  $("#chartTitle").textContent=meta.chartTitle;
+  $("#chartTitle").style.color="";
+  drawChart(sub);
+  document.querySelector(".chart-card .tip").textContent=MODE==="demo"?"示例数据":"官方查询快照";
+
+  var fb=$("#filterBar");fb.innerHTML="";
+  var s=subState[sub];
+  if(sub==="hotel"){
+    fb.appendChild(selOpt("fTier",TIERS,s.tier,"价格档次"));
+    fb.appendChild(selOpt("fType",TYPES,s.type,"类型"));
+  }else if(sub==="flight"){
+    fb.appendChild(selOpt("fTo",FLIGHT_CITIES,s.to,"目的地"));
+  }else if(sub==="meituan"){
+    fb.appendChild(selOpt("fCat",MT_CATS,s.cat,"品类"));
+    fb.appendChild(selOpt("fDisc",["7","5"],s.disc,"折扣"));
+  }else{
+    fb.appendChild(selOpt("fDisc",["100","60"],s.disc,"券额"));
+  }
+  var rs=document.createElement("button");rs.className="f-reset";rs.textContent="重置筛选";
+  rs.addEventListener("click",function(){subState[sub]={hotel:{tier:"",type:""},flight:{to:"",date:""},meituan:{cat:"",disc:""},taobao:{disc:""}}[sub];renderSub(sub)});
+  fb.appendChild(rs);
+
+  var sl=$("#sortLine");sl.innerHTML="";
+  var sorts=sub==="hotel"?[["price","价格最低"],["rating","评分最高"]]:sub==="flight"?[["price","价格最低"],["disc","折扣最大"]]:sub==="meituan"?[["disc","折扣最大"],["sales","销量最高"]]:[["coupon","券额最大"],["sales","销量最高"]];
+  sl.append("排序：");
+  sorts.forEach(function(p){
+    var b=document.createElement("button");b.className="so"+(subSort[sub]===p[0]?" on":"");b.textContent=p[1];
+    b.addEventListener("click",function(){subSort[sub]=p[0];renderSub(sub)});
+    sl.appendChild(b);
+  });
+
+  var list=sortItems(sub,applyFilter(sub));
+  $("#resultMeta").textContent="共 "+list.length+" 条优惠 · "+(MODE==="demo"?"示例报价，非在售价格":"本机手动记录 / 已请求的官方报价")+"";
+  var g=$("#subGrid");g.innerHTML="";
+  if(!list.length){
+    g.innerHTML="<div class='empty'>没有符合筛选条件的优惠<br><b>换个档次 / 类型试试</b></div>";
+  }
+  list.forEach(function(item){
+    var card=makeCard(item,sub);
+    card.addEventListener("click",function(){openDetail(sub,item.id)});
+    card.addEventListener("keydown",function(e){if(e.key==="Enter")openDetail(sub,item.id)});
+    g.appendChild(card);
+  });
+  fb.querySelectorAll("select").forEach(function(sel){
+    sel.addEventListener("change",function(){
+      var st=subState[sub];
+      if(sel.id==="fTier")st.tier=sel.value;
+      if(sel.id==="fType")st.type=sel.value;
+      if(sel.id==="fTo")st.to=sel.value;
+      if(sel.id==="fCat")st.cat=sel.value;
+      if(sel.id==="fDisc")st.disc=sel.value;
+      renderSub(sub);
+    });
+  });
+  if(prefilter&&prefilter.mod===sub){subState[sub][prefilter.key]=prefilter.val;prefilter=null;renderSub(sub)}
+}
+function makeCard(item,sub){
+  var card=document.createElement("div");card.className="card";card.setAttribute("data-open",sub+"|"+item.id);card.setAttribute("tabindex","0");card.setAttribute("role","button");
+  var ic,meta;
+  if(sub==="hotel"){
+    ic='<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>';
+    meta="<span><b>"+esc(item.tier)+"</b></span><span>"+esc(item.type)+"</span><span>评分 <b class='num'>"+item.rating+"</b></span><span>距市中心 "+item.dist+"</span>";
+  }else if(sub==="flight"){
+    ic='<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
+    meta="<span>"+esc(item.airline)+"</span><span class='num'>"+item.dep+" — "+item.arr+"</span><span>折扣 <b>"+item.discount+"</b></span>";
+  }else if(sub==="meituan"){
+    ic='<path d="M3 11h18M12 11V4M7 11v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6"/>';
+    meta="<span>"+esc(item.category)+"</span><span>距你 "+item.dist+"</span><span>已售 <b>"+item.sales+"</b></span>";
+  }else{
+    ic='<path d="M20.6 13.4 11 3.8 3 5l1.2 8 9.6 9.6a2 2 0 0 0 2.8 0l4-4a2 2 0 0 0 0-2.2z"/><circle cx="7.5" cy="7.5" r="1.5"/>';
+    meta="<span>"+esc(item.shop)+"</span><span>已售 <b>"+item.sales+"</b></span><span>券 <b>¥"+item.coupon+"</b></span>";
+  }
+  var c=MODULES[sub].color;
+  var tagHtml=sub==="hotel"?'<span class="pill tag-tier">'+esc(item.tier)+'</span><span class="pill tag-type">'+esc(item.type)+'</span>':"";
+  card.innerHTML=
+    '<span class="thumb"><span class="t-bg" style="background:'+c+'"></span><span class="t-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.7">'+ic+'</svg></span></span>'+
+    '<span class="c-main"><span class="c-name">'+esc(item.name)+'</span><span class="c-meta">'+meta+'</span>'+
+    '<span class="c-price"><span class="now num">¥'+yuan(item.price)+'<small>'+(sub==="hotel"?(MODE==="demo"?"/晚":"/入住区间"):"")+'</small></span><span class="old num">¥'+yuan(item.original)+'</span>'+
+    '<span class="pill tag-tag">'+esc(item.tag||item.discount||"")+'</span></span></span>'+
+    '<span class="c-tags">'+tagHtml+'<span class="pill tag-disc">'+(sub==="meituan"?item.discount:sub==="flight"?item.discount:sub==="taobao"?"券¥"+item.coupon:Math.round(item.price/item.original*100)/10+"折")+'</span></span>';
+  return card;
+}
+function drawChart(sub){
+  var c=MODULES[sub].color;
+  var cats,vals;
+  if(sub==="hotel"){
+    cats=TIERS;
+    vals=TIERS.map(function(t){var a=HOTELS.filter(function(x){return x.tier===t});return a.length?Math.round(a.reduce(function(s,x){return s+x.price},0)/a.length):0});
+  }else if(sub==="flight"){
+    cats=FLIGHTS.map(function(x){return x.to});
+    vals=FLIGHTS.map(function(x){return x.price});
+  }else if(sub==="meituan"){
+    cats=MT_CATS.filter(function(cat){return MEITUAN.some(function(x){return x.category===cat})});
+    vals=cats.map(function(cat){var a=MEITUAN.filter(function(x){return x.category===cat});return Math.round(a.reduce(function(s,x){return s+x.price},0)/a.length)});
+  }else{
+    cats=TAOBAO.map(function(x){return x.name.slice(0,6)});
+    vals=TAOBAO.map(function(x){return x.coupon});
+  }
+  var max=Math.max.apply(null,vals);if(!max)max=1;
+  var H=Math.max(cats.length*38,84), W=700, padL=112, padR=44, row=H/cats.length, barH=Math.min(16,row*0.4);
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:'+H+'px" role="img" aria-label="模块速览条形图">';
+  svg+='<rect x="'+padL+'" y="0" width="'+(W-padL-padR)+'" height="'+H+'" fill="rgba(148,163,184,.05)" rx="8"/>';
+  cats.forEach(function(cat,i){
+    var y=i*row+row/2, v=vals[i];
+    svg+='<text x="'+(padL-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="11.5" fill="#94A3B8" font-family="Noto Sans SC">'+esc(cat)+'</text>';
+    var bw=(W-padL-padR)*v/max;
+    svg+='<rect x="'+padL+'" y="'+(y-barH/2)+'" width="'+bw+'" height="'+barH+'" rx="'+(barH/2)+'" fill="'+c+'" opacity=".85"/>';
+    svg+='<text x="'+(padL+bw-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11.5" font-weight="700" fill="#E6EDF7" class="num" font-family="Noto Sans SC">¥'+yuan(v)+'</text>';
+  });
+  svg+='</svg>';
+  $("#chartBox").innerHTML=svg;
+}
+function openDetail(sub,id){
+  var item=MODULES[sub].data.find(function(x){return x.id===id});if(!item)return;
+  var c=MODULES[sub].color,rows="",ic;
+  if(sub==="hotel"){
+    ic='<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>';
+    rows='<div class="m-cell"><div class="k">价格档次</div><div class="v">'+item.tier+'</div></div><div class="m-cell"><div class="k">类型</div><div class="v">'+item.type+'</div></div><div class="m-cell"><div class="k">评分</div><div class="v num">'+item.rating+' / 5.0</div></div><div class="m-cell"><div class="k">距市中心</div><div class="v">'+item.dist+'</div></div>';
+  }else if(sub==="flight"){
+    ic='<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>';
+    rows='<div class="m-cell"><div class="k">航司</div><div class="v">'+item.airline+'</div></div><div class="m-cell"><div class="k">起降时间</div><div class="v num">'+item.dep+' — '+item.arr+'</div></div><div class="m-cell"><div class="k">折扣</div><div class="v">'+item.discount+'</div></div><div class="m-cell"><div class="k">优惠标签</div><div class="v">'+item.tag+'</div></div>';
+  }else if(sub==="meituan"){
+    ic='<path d="M3 11h18M12 11V4M7 11v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6"/>';
+    rows='<div class="m-cell"><div class="k">品类</div><div class="v">'+item.category+'</div></div><div class="m-cell"><div class="k">折扣</div><div class="v">'+item.discount+'</div></div><div class="m-cell"><div class="k">距你</div><div class="v">'+item.dist+'</div></div><div class="m-cell"><div class="k">已售</div><div class="v">'+item.sales+'</div></div>';
+  }else{
+    ic='<path d="M20.6 13.4 11 3.8 3 5l1.2 8 9.6 9.6a2 2 0 0 0 2.8 0l4-4a2 2 0 0 0 0-2.2z"/><circle cx="7.5" cy="7.5" r="1.5"/>';
+    rows='<div class="m-cell"><div class="k">店铺</div><div class="v">'+item.shop+'</div></div><div class="m-cell"><div class="k">优惠券</div><div class="v">满 ¥'+item.original+' 减 ¥'+item.coupon+'</div></div><div class="m-cell"><div class="k">已售</div><div class="v">'+item.sales+'</div></div><div class="m-cell"><div class="k">标签</div><div class="v">'+item.tag+'</div></div>';
+  }
+  $("#modalBox").innerHTML=
+    '<div class="m-top"><span class="m-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2">'+ic+'</svg></span>'+
+    '<div><h2>'+esc(item.name)+'</h2><div class="m-sub">'+MODULES[sub].name+'频道 · 演示数据</div></div>'+
+    '<button class="m-close" id="mClose" aria-label="关闭"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'+
+    '<div class="m-price"><span class="now num">¥'+yuan(item.price)+'</span><span class="old num">¥'+yuan(item.original)+'</span><span class="m-save">省 ¥'+yuan(item.original-item.price)+'</span></div>'+
+    '<div class="m-grid">'+rows+'</div>'+
+    '<div class="m-note">演示数据仅为交互演示。接入真实接口后，此处将展示对应开放平台的实时报价并跳转官方渠道。</div>'+
+    '<div class="m-act"><button class="btn-plain" id="mFav">加入收藏</button><button class="btn-go" id="mGo">去官方查看 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17 17 7M9 7h8v8"/></svg></button></div>';
+  $("#modalMask").classList.add("open");
+  $("#mClose").onclick=closeModal;
+  $("#modalMask").onclick=function(e){if(e.target===this)closeModal()};
+  $("#mFav").addEventListener("click",function(){toast("已加入收藏（演示）","#34D399")});
+  $("#mGo").addEventListener("click",function(){toast("演示数据：接入真实 API 后将跳转官方渠道","#FB923C")});
+}
+function closeModal(){$("#modalMask").classList.remove("open")}
+document.addEventListener("click",function(e){
+  var o=e.target.closest("[data-open]");
+  if(o){var p=o.getAttribute("data-open").split("|");openDetail(p[0],p[1]);return}
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModal()});
+
+function salesValue(v){return parseFloat(v)*(String(v).includes('万')?10000:1)||0}
+function readStore(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}
+function saveStore(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('保存失败：浏览器存储不可用或空间不足','#FB923C');return false}}
+var demoData={hotel:HOTELS.slice(),flight:FLIGHTS.slice(),meituan:MEITUAN.slice(),taobao:TAOBAO.slice()};
+var liveData={hotel:[],flight:[],meituan:[],taobao:[]};
+var quotes=readStore('sr_quotes_v1',[]), favorites=readStore('sr_favs_v1',[]),prefs=readStore('sr_prefs_v1',{});
+if(!Array.isArray(quotes))quotes=[];if(!Array.isArray(favorites))favorites=[];
+var official={hotel:'https://hotels.ctrip.com/',flight:'https://flights.ctrip.com/',meituan:'https://www.meituan.com/',taobao:'https://www.taobao.com/'};
+function validUrl(s){try{var u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:''}catch(e){return ''}}
+var panel=document.createElement('section');panel.className='workspace';panel.innerHTML=`
+<div class="set-card"><h3>先找到，再比较</h3><p class="sc-desc">打开官方平台核对优惠。把同一商品、房型或航班的含税总价记下来，再比较。</p>
+<div class="tools"><button class="btn-main" id="realMode">实用模式</button><button class="btn-ghost" id="demoMode">查看示例</button><a class="btn-ghost" href="#/settings">接口与备份</a></div>
+<div class="form-grid"><label>频道<select id="workType" class="f-control"><option value="hotel">酒店</option><option value="flight">机票</option><option value="meituan">美团</option><option value="taobao">淘宝</option></select></label><label>关键词 / 酒店 / 商品<input id="keyword" class="f-control" maxlength="100" placeholder="例如：广州塔 双床房"></label><label>出发城市三字码<input id="fromCode" class="f-control" value="CAN" maxlength="3"></label><label>到达城市三字码<input id="toCode" class="f-control" value="BJS" maxlength="3"></label><label>入住 / 出发日期<input type="date" id="startDate" class="f-control"></label><label>离店日期<input type="date" id="endDate" class="f-control"></label><label>飞猪标准酒店 ID<input id="hotelIds" class="f-control" placeholder="多个ID以逗号分隔" maxlength="500"></label></div>
+<div class="tools"><button class="btn-main" id="queryLive">接口状态</button><a class="btn-ghost" id="openOfficial" target="_blank" rel="noopener noreferrer">打开官方平台</a><button class="btn-ghost" id="copyKeyword">复制搜索条件</button></div><div class="notice" id="queryStatus" role="status">此版本可独立使用报价本、收藏与备份；实时报价接口尚未接通。打开官方平台查看价格后，可在下方记录比较。</div></div>
+<div class="set-card"><h3>我的报价本</h3><p class="sc-desc">同一比较组应使用相同日期、人数、规格、退改条件及税费口径。以下为手动记录，不自动更新。</p><form id="quoteForm"><div class="form-grid"><label>比较组<input id="qGroup" class="f-control" required maxlength="100" placeholder="同款 / 同房型 / 同航班"></label><label>报价名称<input id="qName" class="f-control" required maxlength="120"></label><label>平台<input id="qPlatform" class="f-control" required maxlength="40" placeholder="飞猪 / 携程 / 美团等"></label><label>最终应付总价（元）<input id="qPrice" type="number" min="0.01" max="99999999" step="0.01" class="f-control" required></label><label>使用日期<input id="qDate" type="date" class="f-control" required></label><label>商品链接（HTTPS，可选）<input id="qUrl" type="url" class="f-control" maxlength="2000"></label><label>条件备注<input id="qNote" class="f-control" maxlength="200" placeholder="含税 / 早餐 / 退款 / 运费"></label></div><button class="btn-ghost" type="submit">保存报价</button></form><div class="tools"><input id="quoteSearch" class="f-control" placeholder="搜索比较组或报价"><select id="quoteSort" class="f-control"><option value="price">价格从低到高</option><option value="time">最近记录优先</option></select></div><div id="quoteList"></div></div>
+<div class="set-card"><h3>我的收藏</h3><div id="favList"></div></div>`;
+document.querySelector('.topbar').after(panel);
+function todayPlus(n){var d=new Date(Date.now()+8*3600000);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+['startDate','qDate'].forEach(k=>$('#'+k).value=todayPlus(0));$('#endDate').value=todayPlus(1);
+['workType','keyword','fromCode','toCode','startDate','endDate','hotelIds'].forEach(k=>{if(typeof prefs[k]==='string')$('#'+k).value=prefs[k];$('#'+k).addEventListener('change',()=>{prefs[k]=$('#'+k).value;saveStore('sr_prefs_v1',prefs);updateOfficial()})});
+function updateOfficial(){$('#openOfficial').href=official[$('#workType').value]}
+updateOfficial();
+$('#copyKeyword').onclick=async()=>{try{await navigator.clipboard.writeText([$('#keyword').value,$('#fromCode').value+' → '+$('#toCode').value,$('#startDate').value,$('#endDate').value].join(' '));toast('搜索条件已复制')}catch(e){toast('复制失败，请手动复制输入框中的内容')}};
+function setMode(m,silent){MODE=m==='demo'?'demo':'api';saveStore('sr_mode_v2',MODE);Object.keys(MODULES).forEach(k=>MODULES[k].data=MODE==='demo'?demoData[k]:liveData[k]);HOTELS=MODULES.hotel.data;FLIGHTS=MODULES.flight.data;MEITUAN=MODULES.meituan.data;TAOBAO=MODULES.taobao.data;FLIGHT_CITIES=[...new Set(FLIGHTS.map(x=>x.to))];$('#modeTag').textContent=MODE==='demo'?'示例 · 非真实价格':'实用模式';$('#hitList').innerHTML='';hitCount=0;$('#hitTotal').textContent='0';renderHome();if(MOD_META[current.slice(2)])renderSub(current.slice(2));if(!silent)toast(MODE==='demo'?'正在展示示例数据':'已切换实用模式');}
+$('#realMode').onclick=()=>setMode('api');$('#demoMode').onclick=()=>setMode('demo');
+MODE=readStore('sr_mode_v2','api');
+function renderQuotes(){var list=quotes.filter(x=>(x.group+' '+x.name+' '+x.platform).toLowerCase().includes($('#quoteSearch').value.toLowerCase()));list.sort((a,b)=>$('#quoteSort').value==='time'?b.created-a.created:a.price-b.price);$('#quoteList').innerHTML='';if(!list.length){$('#quoteList').textContent='还没有报价。保存后可自动按价格排序。';return}list.forEach(q=>{var same=quotes.filter(x=>x.group===q.group&&x.date===q.date&&x.mod===q.mod),min=Math.min(...same.map(x=>x.price));var d=document.createElement('div');d.className='compare-row';d.innerHTML='<span><b>'+esc(q.name)+'</b><br>'+esc(q.group)+' · '+esc(q.platform)+'<br>'+esc(q.date)+' · '+esc(q.note||'')+'</span><span style="color:var(--orange)">¥'+yuan(q.price)+(q.price===min&&same.length>1?' · 组内最低':'')+'<br><small>手动记录 · '+new Date(q.created).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})+'</small></span>';var controls=document.createElement('span');if(validUrl(q.url)){var a=document.createElement('a');a.className='btn-ghost';a.textContent='查看链接';a.href=validUrl(q.url);a.target='_blank';a.rel='noopener noreferrer';controls.append(a)}var b=document.createElement('button');b.className='btn-ghost';b.textContent='删除';b.onclick=()=>{var next=quotes.filter(x=>x.id!==q.id);if(saveStore('sr_quotes_v1',next)){quotes=next;renderQuotes()}};controls.append(b);d.append(controls);$('#quoteList').append(d)})}
+$('#quoteForm').onsubmit=e=>{e.preventDefault();var url=$('#qUrl').value.trim();if(url&&!validUrl(url))return toast('商品链接需要使用 HTTPS');var q={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)),mod:$('#workType').value,group:$('#qGroup').value.trim(),name:$('#qName').value.trim(),platform:$('#qPlatform').value.trim(),price:Number($('#qPrice').value),date:$('#qDate').value,url:validUrl(url),note:$('#qNote').value.trim(),created:Date.now()};if(!q.name||!q.group||!q.platform||!Number.isFinite(q.price)||q.price<=0)return toast('请填写完整报价');var next=[q,...quotes];if(saveStore('sr_quotes_v1',next)){quotes=next;renderQuotes();toast('报价已保存')}};
+$('#quoteSearch').oninput=renderQuotes;$('#quoteSort').onchange=renderQuotes;renderQuotes();
+function renderFavs(){$('#favList').innerHTML='';if(!favorites.length)$('#favList').textContent='打开报价详情后可收藏；示例收藏会单独标明。';favorites.forEach(f=>{var d=document.createElement('div');d.className='compare-row';var span=document.createElement('span');span.textContent=f.name+' · ¥'+yuan(f.price)+' · '+(f.demo?'示例':'官方报价快照');var b=document.createElement('button');b.className='btn-ghost';b.textContent='取消收藏';b.onclick=()=>{var next=favorites.filter(x=>x.key!==f.key);if(saveStore('sr_favs_v1',next)){favorites=next;renderFavs()}};d.append(span,b);$('#favList').append(d)})}renderFavs();
+var originalDetail=openDetail;openDetail=function(sub,id){originalDetail(sub,id);var item=MODULES[sub].data.find(x=>x.id===id);if(!item)return;var demo=MODE==='demo',key=(demo?'demo:':'live:')+sub+':'+id;$('#modalBox .m-sub').textContent=MODULES[sub].name+' · '+(demo?'示例（非在售价格）':'官方查询快照');$('#modalBox .m-note').textContent=demo?'这是示例报价，官方按钮只打开频道入口，不代表存在此优惠。':'查询时间：'+(item.updatedAt||'未知')+'。价格为快照，税费、库存、优惠条件与最终应付金额请在官方确认。';$('#mFav').replaceWith($('#mFav').cloneNode(true));$('#mGo').replaceWith($('#mGo').cloneNode(true));$('#mFav').textContent=favorites.some(x=>x.key===key)?'已收藏':'加入收藏';$('#mFav').onclick=()=>{if(favorites.some(x=>x.key===key))return toast('已在收藏中');var next=[{key,name:item.name,price:item.price,demo,mod:sub},...favorites];if(saveStore('sr_favs_v1',next)){favorites=next;renderFavs();$('#mFav').textContent='已收藏'}};$('#mGo').textContent='打开官方频道';$('#mGo').onclick=()=>window.open(official[sub],'_blank','noopener,noreferrer');document.body.style.overflow='hidden';$('#mClose').focus()};var originalClose=closeModal;closeModal=function(){originalClose();document.body.style.overflow=''};
+var nativeRenderSub=renderSub;renderSub=function(sub){nativeRenderSub(sub);if(!MODULES[sub].data.length){$('#chartBox').innerHTML='<div class="notice">暂无可统计的官方报价。</div>';$('#subGrid').innerHTML='<div class="empty">尚未接通实时报价。请打开官方平台后，在上方报价本记录和比较；也可切换示例体验界面。</div>'}};
+function renderSettings(){
+  $('#apiReport').textContent='当前为 GitHub Pages 静态网页。页面、报价本、收藏和备份无需后端即可使用。飞猪、美团、淘宝实时报价均未接通；不会向本站不存在的 /api/ 地址发起请求。需要实时报价时，须另行部署后端并配置平台授权。';
+}
+$('#checkApi').onclick=renderSettings;
+$('#queryLive').onclick=()=>{navigate('#/settings');renderSettings()};
+['fromCode','toCode','hotelIds'].forEach(id=>$('#'+id).closest('label').hidden=true);
+$('#exportData').onclick=()=>{var blob=new Blob([JSON.stringify({version:1,quotes,favorites,prefs},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='省钱雷达备份-'+todayPlus(0)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+$('#importData').onchange=async e=>{try{var f=e.target.files[0];if(!f)return;if(f.size>2000000)throw Error('备份不能超过2MB');var d=JSON.parse(await f.text());if(d.version!==1||!Array.isArray(d.quotes)||!Array.isArray(d.favorites)||d.quotes.length>5000||d.favorites.length>5000)throw Error('备份格式错误');var qs=d.quotes.map(q=>{if(!q||typeof q.id!=='string'||typeof q.group!=='string'||typeof q.name!=='string'||typeof q.platform!=='string'||!Number.isFinite(q.price)||q.price<=0||!/^\d{4}-\d{2}-\d{2}$/.test(q.date)||!Number.isFinite(q.created)||!MODULES[q.mod])throw Error('报价数据无效');return {...q,url:validUrl(q.url),note:String(q.note||'').slice(0,200)}});var fs=d.favorites.map(f=>{if(!f||typeof f.key!=='string'||typeof f.name!=='string'||!Number.isFinite(f.price))throw Error('收藏格式错误');return {key:f.key,name:f.name,price:f.price,demo:!!f.demo,mod:f.mod}});var mergedQ=[...new Map([...quotes,...qs].map(x=>[x.id,x])).values()],mergedF=[...new Map([...favorites,...fs].map(x=>[x.key,x])).values()];if(!saveStore('sr_quotes_v1',mergedQ)||!saveStore('sr_favs_v1',mergedF))throw Error('存储失败');quotes=mergedQ;favorites=mergedF;renderQuotes();renderFavs();$('#backupMessage').textContent='已合并导入报价和收藏，重复记录已去重。'}catch(err){$('#backupMessage').textContent='导入失败：'+err.message}finally{e.target.value=''}};
+// Remove obsolete plaintext AppKey fields from the old prototype.
+['hotel','flight'].forEach(k=>{try{localStorage.removeItem('sr_key_'+k)}catch(e){}});
+
+/* ===== 启动 ===== */
+placeTargets();
+renderHome();
+setMode(MODE,true);
+navigate(location.hash||"#/");
+requestAnimationFrame(radarLoop);
+</script>
+</body>
+</html>

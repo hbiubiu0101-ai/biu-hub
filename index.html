@@ -220,7 +220,7 @@ body::before{
   <footer class="footnote">
     <div class="hint">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
-      所有工具数据本地保存 · 不联网也能用
+      各工具的数据保存方式以工具内说明为准
     </div>
     <span>持续扩充中 · 欢迎提出你想集成的工具</span>
   </footer>
@@ -231,6 +231,11 @@ body::before{
 <script>
 /* ============ 工具清单（新增工具在此追加） ============ */
 const TOOLS = [
+  {
+    name:"省钱雷达", cat:"生活", status:"online", version:"v1.1",
+    desc:"酒店、机票、美团和淘宝官方入口，手动记录报价、比较价格、保存收藏与备份。实时报价尚未接通。",
+    icon:"fund", tone:"amber", url:"tools/saving-radar/"
+  },
   {
     name:"消费记账台", cat:"生活", status:"online", version:"v1.2",
     desc:"记录每一笔消费，粘贴账单或截图自动识别入账，月度预算、分类占比与智能消费洞察。",
