@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-10-23T14:54:24.227Z",
+  "generatedAt": "2026-10-23T15:07:21.186Z",
   "city": "广州",
   "destination": "北京",
   "checkin": "2026-10-23",
@@ -9,7 +9,7 @@
     "hotel": {
       "state": "ok",
       "note": "*当前为体验模式，部分搜索结果可能受限，请前往 [飞猪AI开放平台](https://flyai.open.fliggy.com/) 获取正式API Key解锁完整服务。*",
-      "capturedAt": "2026-10-23T14:54:10.674Z"
+      "capturedAt": "2026-10-23T15:07:18.367Z"
     },
     "flight": {
       "state": "partial",
@@ -27,26 +27,6 @@
   "items": {
     "hotel": [
       {
-        "id": "flyhotel_54233051",
-        "name": "城市便捷酒店(广州十三行上下九步行街一店)",
-        "tier": "舒适",
-        "type": "未提供",
-        "rating": null,
-        "dist": "近北京路步行街",
-        "address": "上九路46号，近广东省中医院、儿童医院",
-        "price": null,
-        "priceText": "¥1xx",
-        "original": null,
-        "tag": "接口查询快照",
-        "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1BziTS",
-        "realSnapshot": true,
-        "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
-        "date": "2026-10-23",
-        "checkout": "2026-10-24"
-      },
-      {
         "id": "flyhotel_50325312",
         "name": "逸米公寓（广州北京路步行街公园前地铁站店）",
         "tier": "经济",
@@ -59,30 +39,50 @@
         "original": null,
         "tag": "接口查询快照",
         "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2l1OXL",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1u3HZq",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
         "date": "2026-10-23",
         "checkout": "2026-10-24"
       },
       {
-        "id": "flyhotel_10095124",
-        "name": "7天优品·广州中医药大学三元里地铁站店",
+        "id": "flyhotel_50160719",
+        "name": "广州柏季酒店(广州塔琶洲会展店)",
         "tier": "经济",
         "type": "未提供",
         "rating": null,
-        "dist": "近广州站",
-        "address": "广园中路71号松柏新村牌坊直进20米（广园客运站西行700米）背靠美博城",
+        "dist": "近广州塔",
+        "address": "广州海珠区恒信路203号二层",
+        "price": null,
+        "priceText": "¥3xx",
+        "original": null,
+        "tag": "接口查询快照",
+        "accent": "#38BDF8",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F0ENE9i",
+        "realSnapshot": true,
+        "sourceName": "飞猪官方接口",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
+        "date": "2026-10-23",
+        "checkout": "2026-10-24"
+      },
+      {
+        "id": "flyhotel_61484139",
+        "name": "简一酒店(广州琶洲会展海珠万达广场店)",
+        "tier": "经济",
+        "type": "未提供",
+        "rating": null,
+        "dist": "近客村",
+        "address": "广东省广州市海珠区红卫村大塘村口四巷六号",
         "price": null,
         "priceText": "¥2xx",
         "original": null,
         "tag": "接口查询快照",
         "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2feaEj",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1rrzKV",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
         "date": "2026-10-23",
         "checkout": "2026-10-24"
       },
@@ -99,30 +99,10 @@
         "original": null,
         "tag": "接口查询快照",
         "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1w67dF",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1CiCwb",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
-        "date": "2026-10-23",
-        "checkout": "2026-10-24"
-      },
-      {
-        "id": "flyhotel_69396017",
-        "name": "广州玖玖精品酒店(同和地铁站店)",
-        "tier": "经济",
-        "type": "未提供",
-        "rating": null,
-        "dist": "近同和(地铁站)",
-        "address": "广州市白云区同宝路1号",
-        "price": null,
-        "priceText": "¥1xx",
-        "original": null,
-        "tag": "接口查询快照",
-        "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F3IkkBC",
-        "realSnapshot": true,
-        "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
         "date": "2026-10-23",
         "checkout": "2026-10-24"
       },
@@ -139,10 +119,10 @@
         "original": null,
         "tag": "接口查询快照",
         "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1ag3Xn",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F32MSsu",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
         "date": "2026-10-23",
         "checkout": "2026-10-24"
       },
@@ -159,30 +139,50 @@
         "original": null,
         "tag": "接口查询快照",
         "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F3s8dTu",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1HxcSD",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
         "date": "2026-10-23",
         "checkout": "2026-10-24"
       },
       {
-        "id": "flyhotel_56532008",
-        "name": "广州盈丰公寓江同路店",
+        "id": "flyhotel_54004025",
+        "name": "广州星豪公寓(广州新白云国际机场店)",
         "tier": "经济",
         "type": "未提供",
         "rating": null,
-        "dist": "近江高商业步行街",
-        "address": "广州--广州市白云区江高镇江同路1号（第二人民医院对面）-",
+        "dist": "近高增(地铁站)",
+        "address": "矮岗大路口西二巷2号",
+        "price": null,
+        "priceText": "¥6x",
+        "original": null,
+        "tag": "接口查询快照",
+        "accent": "#38BDF8",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2SsGsu",
+        "realSnapshot": true,
+        "sourceName": "飞猪官方接口",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
+        "date": "2026-10-23",
+        "checkout": "2026-10-24"
+      },
+      {
+        "id": "flyhotel_90349146",
+        "name": "佰岛千川公寓",
+        "tier": "经济",
+        "type": "未提供",
+        "rating": null,
+        "dist": "近科学城(地铁站)",
+        "address": "广州市黄埔区观虹路10号702房",
         "price": null,
         "priceText": "¥3x",
         "original": null,
         "tag": "接口查询快照",
         "accent": "#38BDF8",
-        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F4Yr0uJ",
+        "detailUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1pKIor",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:10.674Z",
+        "capturedAt": "2026-10-23T15:07:18.367Z",
         "date": "2026-10-23",
         "checkout": "2026-10-24"
       }
@@ -207,37 +207,13 @@
         "routeSegments": [
           "广州 2026-10-24 21:55:00 → 北京 2026-10-25 00:55:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2daaAE",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F18WeWy",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
-        "id": "flyflight_2026-10-24_MU6152_1",
-        "name": "MU6152 广州→北京",
-        "airline": "东航",
-        "from": "广州",
-        "to": "北京",
-        "dep": "21:10",
-        "arr": "00:30",
-        "date": "2026-10-24",
-        "arrDate": "2026-10-25",
-        "price": 600,
-        "priceText": "600.00",
-        "original": null,
-        "discount": "未提供",
-        "tag": "直达 · 税费以订单为准",
-        "connections": 0,
-        "routeSegments": [
-          "广州 2026-10-24 21:10:00 → 北京 2026-10-25 00:30:00"
-        ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F26IITF",
-        "realSnapshot": true,
-        "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
-      },
-      {
-        "id": "flyflight_2026-10-24_KN5830_2",
+        "id": "flyflight_2026-10-24_KN5830_1",
         "name": "KN5830 广州→北京",
         "airline": "中联航",
         "from": "广州",
@@ -255,10 +231,34 @@
         "routeSegments": [
           "广州 2026-10-24 21:45:00 → 北京 2026-10-25 00:45:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2TlGfz",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F4ME2SM",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
+      },
+      {
+        "id": "flyflight_2026-10-24_MU6152_2",
+        "name": "MU6152 广州→北京",
+        "airline": "东航",
+        "from": "广州",
+        "to": "北京",
+        "dep": "21:10",
+        "arr": "00:30",
+        "date": "2026-10-24",
+        "arrDate": "2026-10-25",
+        "price": 644,
+        "priceText": "644.00",
+        "original": null,
+        "discount": "未提供",
+        "tag": "直达 · 税费以订单为准",
+        "connections": 0,
+        "routeSegments": [
+          "广州 2026-10-24 21:10:00 → 北京 2026-10-25 00:30:00"
+        ],
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F29mbAu",
+        "realSnapshot": true,
+        "sourceName": "飞猪官方接口",
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
         "id": "flyflight_2026-10-24_MU6298_3",
@@ -270,8 +270,8 @@
         "arr": "14:35",
         "date": "2026-10-24",
         "arrDate": "2026-10-24",
-        "price": 766,
-        "priceText": "766.00",
+        "price": 736,
+        "priceText": "736.00",
         "original": null,
         "discount": "未提供",
         "tag": "直达 · 税费以订单为准",
@@ -279,10 +279,10 @@
         "routeSegments": [
           "广州 2026-10-24 11:50:00 → 北京 2026-10-24 14:35:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F45trST",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F4MdAp7",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
         "id": "flyflight_2026-10-24_MU6312_4",
@@ -303,10 +303,10 @@
         "routeSegments": [
           "广州 2026-10-24 20:50:00 → 北京 2026-10-25 00:05:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F45fhUq",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2uFEVg",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
         "id": "flyflight_2026-10-24_AQ1001_5",
@@ -327,34 +327,34 @@
         "routeSegments": [
           "广州 2026-10-24 16:55:00 → 北京 2026-10-24 20:05:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F4F5wXL",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2yJqKD",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
-        "id": "flyflight_2026-10-24_MU6306_6",
-        "name": "MU6306 广州→北京",
-        "airline": "东航",
+        "id": "flyflight_2026-10-24_HU7816_6",
+        "name": "HU7816 广州→北京",
+        "airline": "新海航|海南航空",
         "from": "广州",
         "to": "北京",
-        "dep": "12:50",
-        "arr": "15:50",
+        "dep": "21:15",
+        "arr": "00:25",
         "date": "2026-10-24",
-        "arrDate": "2026-10-24",
-        "price": 736,
-        "priceText": "736.00",
+        "arrDate": "2026-10-25",
+        "price": 790,
+        "priceText": "790.00",
         "original": null,
         "discount": "未提供",
         "tag": "直达 · 税费以订单为准",
         "connections": 0,
         "routeSegments": [
-          "广州 2026-10-24 12:50:00 → 北京 2026-10-24 15:50:00"
+          "广州 2026-10-24 21:15:00 → 北京 2026-10-25 00:25:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F3UZYDd",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F2XXqXI",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
         "id": "flyflight_2026-10-24_MF8302_7",
@@ -376,10 +376,10 @@
           "广州 2026-10-24 18:10:00 → 厦门 2026-10-24 19:35:00",
           "厦门 2026-10-24 21:00:00 → 北京 2026-10-24 23:55:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1v56zk",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F4TtZDr",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
         "id": "flyflight_2026-10-24_MU5302_8",
@@ -401,10 +401,10 @@
           "广州 2026-10-24 08:35:00 → 上海 2026-10-24 10:45:00",
           "上海 2026-10-24 13:00:00 → 北京 2026-10-24 15:10:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F3RE7wH",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F1salxg",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       },
       {
         "id": "flyflight_2026-10-24_ZH8695_9",
@@ -426,10 +426,10 @@
           "广州 2026-10-24 13:50:00 → 南通 2026-10-24 16:10:00",
           "南通 2026-10-24 18:40:00 → 北京 2026-10-24 20:40:00"
         ],
-        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F096QdJ",
+        "jumpUrl": "https://router.feizhu.com/multi/webview?url=https%3A%2F%2Frouter.feizhu.com%2Fws%2F3aZku6",
         "realSnapshot": true,
         "sourceName": "飞猪官方接口",
-        "capturedAt": "2026-10-23T14:54:24.226Z"
+        "capturedAt": "2026-10-23T15:07:21.186Z"
       }
     ],
     "meituan": [
