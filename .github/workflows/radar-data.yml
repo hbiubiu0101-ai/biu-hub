@@ -1,0 +1,65 @@
+name: 更新省钱雷达接口数据
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/update-radar.mjs
+      - .github/workflows/radar-data.yml
+  workflow_dispatch:
+    inputs:
+      city:
+        description: 出发城市及酒店城市
+        default: 广州
+      destination:
+        description: 航班目的地
+        default: 北京
+      flight_days:
+        description: 从今天起查询天数（1至7）
+        default: '2'
+      checkin:
+        description: 酒店入住日期（YYYY-MM-DD，留空为今天）
+      checkout:
+        description: 酒店离店日期（YYYY-MM-DD，留空为明天）
+permissions:
+  contents: write
+concurrency:
+  group: radar-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @fly-ai/flyai-cli@1.0.16
+      - name: 查询飞猪官方接口
+        id: query
+        continue-on-error: true
+        env:
+          FLYAI_API_KEY: ${{ secrets.FLYAI_API_KEY }}
+          RADAR_CITY: ${{ inputs.city || '广州' }}
+          RADAR_DESTINATION: ${{ inputs.destination || '北京' }}
+          RADAR_FLIGHT_DAYS: ${{ inputs.flight_days || '2' }}
+          RADAR_CHECKIN: ${{ inputs.checkin }}
+          RADAR_CHECKOUT: ${{ inputs.checkout }}
+        run: node scripts/update-radar.mjs
+      - name: 保存接口结果及失败状态
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/saving-radar/data/quotes.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "更新省钱雷达接口查询快照"
+          git pull --rebase origin main
+          git push
+      - name: 部署GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST repos/${{ github.repository }}/pages/builds || echo "Pages 自动刷新未触发；请查看仓库 Pages 部署方式并手动部署。"
+      - name: 报告接口失败
+        if: steps.query.outcome == 'failure'
+        run: echo '飞猪查询失败，已保存错误状态，请查看上方日志。' && exit 1
