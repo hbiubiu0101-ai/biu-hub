@@ -935,6 +935,30 @@ document.querySelectorAll(".ai-save").forEach(function(b){
 function storeValue(k,v){try{localStorage.setItem(k,v);return true}catch(e){toast("保存失败：浏览器存储不可用","#FB923C");return false}}
 function loadValue(k,fallback){try{return JSON.parse(localStorage.getItem(k))??fallback}catch(e){return fallback}}
 function salesNumber(v){return (parseFloat(v)||0)*(String(v).includes('万')?10000:String(v).includes('亿')?100000000:1)}
+var nativeMakeCard=makeCard;
+makeCard=function(item,sub){
+  var card=nativeMakeCard(item,sub);
+  if(item.source==='user_share')card.querySelector('.old').textContent='原价未提供';
+  return card;
+};
+// User-supplied share record; price and availability have not been verified.
+MEITUAN.unshift({id:'share_51abksqz',name:'茉莉奶白｜茉莉奶白（中杯）',category:'美食',price:11.99,original:11.99,discount:'未核验',dist:'未提供',sales:'未知',tag:'用户分享 · 价格未核验',shareUrl:'http://dpurl.cn/51abksqz',dealId:'1155471046',source:'user_share'});
+function productDestination(item,sub){
+  var hosts=sub==='meituan'?['meituan.com','dianping.com','dpurl.cn']:sub==='taobao'?['taobao.com','tmall.com','tb.cn']:['fliggy.com','alitrip.com','taobao.com','tb.cn'];
+  var fields=['shareUrl','coupon_share_url','click_url','productUrl','url'];
+  for(var i=0;i<fields.length;i++){
+    var raw=item[fields[i]];if(typeof raw!=='string'||!raw.trim())continue;
+    try{
+      var u=new URL(raw.startsWith('//')?'https:'+raw:raw);
+      if(!['https:','http:'].includes(u.protocol)||u.username||u.password)continue;
+      if(!hosts.some(function(h){return u.hostname===h||u.hostname.endsWith('.'+h)}))continue;
+      // A company home page is never a product destination.
+      if(u.pathname==='/'||!u.pathname)continue;
+      return u.href;
+    }catch(e){}
+  }
+  return '';
+}
 var originalData={hotel:HOTELS,flight:FLIGHTS,meituan:MEITUAN,taobao:TAOBAO};
 var nativeSetMode=setMode;
 setMode=function(m,silent){
@@ -951,6 +975,12 @@ var nativeOpenDetail=openDetail;
 openDetail=function(sub,id){
   nativeOpenDetail(sub,id);
   var item=MODULES[sub].data.find(function(x){return x.id===id});if(!item)return;
+  if(item.source==='user_share'){
+    $('#modalBox .m-price .old').textContent='原价未提供';
+    $('#modalBox .m-save').textContent='优惠待核验';
+    $('#modalBox .m-sub').textContent=MODULES[sub].name+'频道 · 用户分享';
+    $('#modalBox .m-note').textContent='来自你提供的美团分享信息：11.99元。当前价格、库存、门店和优惠条件尚未核验，以打开后的商品页面为准。点击后直接进入原分享链接，由平台决定是否唤起App。';
+  }
   var key=sub+':'+id,button=$('#mFav'),go=$('#mGo');
   button.replaceWith(button.cloneNode(true));go.replaceWith(go.cloneNode(true));
   button=$('#mFav');go=$('#mGo');
@@ -962,9 +992,10 @@ openDetail=function(sub,id){
     if(storeValue('sr_favs_original_v1',JSON.stringify(next))){savedFavs=next;refreshFav();toast(selected?'已取消收藏':'已保存收藏，刷新后仍保留','#34D399')}
   };
   go.onclick=function(){
-    var urls={hotel:'https://www.fliggy.com/',flight:'https://www.fliggy.com/',meituan:'https://www.meituan.com/',taobao:'https://www.taobao.com/'};
-    window.open(urls[sub],'_blank','noopener,noreferrer');
-    toast('已打开官方平台入口；示例商品和价格不代表真实在售优惠','#FB923C');
+    var url=productDestination(item,sub);
+    if(!url){toast('这条示例没有对应商品链接，不能跳转到商品。接入真实商品后才可打开对应详情。','#FB923C');return}
+    // Preserve the platform's original share URL; its landing page controls App wake-up.
+    window.location.assign(url);
   };
 };
 var nativeRenderSub=renderSub;
