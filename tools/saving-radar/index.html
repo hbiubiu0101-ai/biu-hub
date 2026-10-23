@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>省钱雷达 · 酒店机票美团淘宝优惠聚合</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%2338BDF8' stroke-width='1.6'/%3E%3Cpath d='M12 12 L18 8' stroke='%23FB923C' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='2.4' fill='%2322D3EE'/%3E%3C/svg%3E">
-
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
 <style>
-[hidden]{display:none!important}
-
 :root{
   --bg0:#0B1220; --bg1:#0E1628; --panel:#111B33; --panel2:#15213D;
   --line:rgba(148,163,184,.16); --line2:rgba(148,163,184,.28);
@@ -310,14 +308,12 @@ select.f-control{appearance:none;padding-right:30px;background-image:url("data:i
 @media (prefers-reduced-motion:reduce){
   .sweep{animation:none}
 }
-
-.workspace{max-width:1200px;margin:18px auto;padding:0 16px}.workspace .set-card{border-color:rgba(56,189,248,.3)}.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:12px 0}.form-grid label{display:flex;flex-direction:column;gap:5px;color:var(--sub);font-size:12px}.form-grid input,.form-grid select{width:100%}.tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.notice{font-size:13px;line-height:1.8;color:var(--sub);padding:12px;background:var(--bg1);border-radius:10px}.notice strong{color:var(--amber)}.compare-row{display:flex;gap:12px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--line)}.compare-row span{flex:1;min-width:100px}#quoteList{max-height:400px;overflow:auto}input[type=date]{color-scheme:dark}button:disabled{opacity:.5;cursor:wait}.card .c-name{padding-right:65px}.modal-mask.open{z-index:150}.foot{margin-top:20px}@media(max-width:480px){.top-status{gap:6px}.brand{font-size:15px}.form-grid{grid-template-columns:1fr 1fr}.tools .btn-ghost{padding:8px 12px}.topbar{padding:12px}.card .c-tags{position:static;max-width:75px}.card .c-name{padding-right:0}}
 </style>
 </head>
 <body>
 
 <!-- ===== 顶部状态栏 ===== -->
-<header class="topbar"><a href="../../" class="btn-ghost" aria-label="返回智能工作台">← 工作台</a>
+<header class="topbar">
   <div class="brand" data-nav="#/" role="button" tabindex="0" aria-label="返回首页">
     <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.6">
       <circle cx="12" cy="12" r="9.5"/>
@@ -401,9 +397,93 @@ select.f-control{appearance:none;padding-right:30px;background-image:url("data:i
 <section class="view" id="view-settings">
   <div class="view-title"><h1>数据源设置</h1><span class="sub">演示数据 / 真实接口接入预留</span></div>
 
-<div class="set-card"><h3>接口实况</h3><p class="sc-desc">报价本和收藏在浏览器内保存。此 GitHub Pages 版本不包含接口服务端，不收集平台密钥。</p><button class="btn-ghost" id="checkApi">查看接入状态</button><div id="apiReport" class="sc-desc">静态网页 · 实时报价未接通</div></div>
-<div class="set-card"><h3>接入条件</h3><p class="sc-desc">飞猪酒店：AppKey + AppSecret + 应用接口权限，查询还需要标准酒店 ID 和入住、离店日期。<br>飞猪机票：AppKey + AppSecret + 应用接口权限，需出发/到达城市三字码与日期。<br>淘宝客：需申请相应权限及推广位；本版未接商品搜索适配器。<br>美团联盟：确有商品与推广链接能力，需联盟凭据和签名；本版未接商品搜索适配器。<br>密钥只在服务端环境变量设置，本页面不收集密钥。</p></div>
-<div class="set-card"><h3>数据备份</h3><p class="sc-desc">手动报价、收藏、筛选保存在当前浏览器，不跨设备同步。可导出 JSON 备份，再到另一设备导入。</p><button class="btn-ghost" id="exportData">导出备份</button><label class="btn-ghost">导入备份<input type="file" id="importData" accept="application/json" hidden></label><div id="backupMessage" role="status"></div></div></section>
+  <div class="set-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      数据模式
+    </h3>
+    <p class="sc-desc">当前为<b>演示数据</b>：页面所有价格与优惠为内置模拟数据，用于体验完整功能。切换为真实数据前，需要你在对应开放平台注册账号、创建应用获取 AppKey。</p>
+    <div class="switch-row">
+      <div style="font-size:13.5px">
+        <div style="font-weight:700">演示数据</div>
+        <div style="font-size:11.5px;color:var(--dim)">开箱即用，无需注册</div>
+      </div>
+      <button class="switch" id="modeSwitch" role="switch" aria-checked="true" aria-label="切换数据模式"></button>
+    </div>
+  </div>
+
+  <div class="section-h">免费接口接入位（真实数据）</div>
+
+  <div class="set-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M2 16L8 5l6 11M6 11h4"/><path d="M18 5v11M18 16a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+      酒店报价
+    </h3>
+    <div class="api-item">
+      <div class="ai-h"><span>飞猪分销通用酒店报价接口</span><span class="st st-free">接口免费</span></div>
+      <div class="ai-desc">淘宝开放平台 taobao.xhotel.distribution.price · 需注册开放平台账号并创建应用获取 AppKey；接口为服务端签名调用，浏览器直连存在跨域限制，需后端代理转发。</div>
+      <div class="ai-field">
+        <label>AppKey</label>
+        <input type="text" placeholder="粘贴你的 AppKey" data-key="hotel">
+      </div>
+      <button class="ai-save" data-save="hotel">保存配置</button>
+    </div>
+    <div class="api-item">
+      <div class="ai-h"><span>美团酒店直连平台</span><span class="st st-none">面向供应商</span></div>
+      <div class="ai-desc">面向酒店供给端对接，普通个人开发者无公开免费比价接口，暂不可接入。</div>
+    </div>
+  </div>
+
+  <div class="set-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+      机票搜索
+    </h3>
+    <div class="api-item">
+      <div class="ai-h"><span>飞猪国内机票搜索接口</span><span class="st st-free">接口免费</span></div>
+      <div class="ai-desc">淘宝开放平台 taobao.trip.jipiao.nsearch.ow.search · 可搜索航班列表与低价列表；同样需要 AppKey 与服务端代理。</div>
+      <div class="ai-field">
+        <label>AppKey</label>
+        <input type="text" placeholder="粘贴你的 AppKey" data-key="flight">
+      </div>
+      <button class="ai-save" data-save="flight">保存配置</button>
+    </div>
+  </div>
+
+  <div class="set-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><path d="M3 11h18M12 11V4M7 11v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6"/></svg>
+      美团优惠
+    </h3>
+    <div class="api-item">
+      <div class="ai-h"><span>美团开放平台</span><span class="st st-none">无个人免费接口</span></div>
+      <div class="ai-desc">美团优惠/团购数据暂无面向个人开发者的免费公开接口，平台开放能力主要面向商家与服务商。当前模块以演示数据展示交互。</div>
+    </div>
+  </div>
+
+  <div class="set-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FB923C" stroke-width="2"><path d="M20.6 13.4L11 3.8 3 5l1.2 8 9.6 9.6a2 2 0 0 0 2.8 0l4-4a2 2 0 0 0 0-2.2z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+      淘宝优惠
+    </h3>
+    <div class="api-item">
+      <div class="ai-h"><span>淘宝客 / 飞猪开放平台</span><span class="st st-auth">需授权与资质</span></div>
+      <div class="ai-desc">淘宝商品优惠券数据需通过淘宝客（淘宝联盟）接口获取，需要推广位与较高资质；普通免费档位拿不到稳定优惠数据。</div>
+    </div>
+  </div>
+
+  <div class="set-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      接入须知
+    </h3>
+    <p class="sc-desc">
+      1. 「接口免费」指调用本身不收费，但都需要在对应开放平台注册账号、创建应用获取 AppKey，部分接口有调用配额与授权要求。<br>
+      2. 这些接口是服务端签名调用，浏览器直接请求会被跨域拦截，正式接入需要一个后端代理转发（本页为纯前端原型，未包含后端）。<br>
+      3. 演示数据仅用于体验交互，不代表真实在售价格；请勿对未授权网站进行爬取，遵守各平台服务条款。
+    </p>
+  </div>
+</section>
 
 <!-- ===== 详情弹层 / toast ===== -->
 <div class="modal-mask" id="modalMask">
@@ -412,7 +492,8 @@ select.f-control{appearance:none;padding-right:30px;background-image:url("data:i
 <div class="toast-wrap" id="toastWrap"></div>
 
 <footer class="foot">
-  <b>省钱雷达</b> · 报价收藏与对比<br>手动记录不代表平台核价；示例数据独立展示。官方报价以结算页面为准，优惠可能受会员、库存、税费和使用条件影响。
+  <b>省钱雷达</b> · 酒店 / 机票 / 美团 / 淘宝优惠聚合演示原型<br>
+  当前版本使用内置演示数据；接入真实接口需注册开放平台 AppKey 并配置后端代理。价格与优惠仅为模拟，不代表真实在售信息。
 </footer>
 
 <script>
@@ -463,8 +544,8 @@ var MODULES={
  taobao:{name:"淘宝",color:"#FB923C",data:TAOBAO}
 };
 var MOD_META={
- hotel:{title:"酒店优惠雷达",sub:"酒店报价查询与收藏",chartTitle:"各档次报价均值（元）"},
- flight:{title:"机票优惠雷达",sub:"按城市与日期查询航班",chartTitle:"各航线最低价（元）"},
+ hotel:{title:"酒店优惠雷达",sub:"按价格档次与类型扫描广州酒店",chartTitle:"各档次券后均价（元/晚）"},
+ flight:{title:"机票优惠雷达",sub:"广州出发 · 特价航班扫描",chartTitle:"各航线最低价（元）"},
  meituan:{title:"美团优惠雷达",sub:"本地生活团购折扣扫描",chartTitle:"各品类券后均价（元）"},
  taobao:{title:"淘宝优惠雷达",sub:"好券商品折扣扫描",chartTitle:"各商品券面额（元）"}
 };
@@ -486,7 +567,7 @@ function toast(html,color){
 /* ===== 数据模式 ===== */
 var MODE="demo"; /* demo / api */
 try{MODE=localStorage.getItem("sr_mode")||"demo"}catch(e){}
-function oldSetMode(m,silent){
+function setMode(m,silent){
   MODE=m;
   try{localStorage.setItem("sr_mode",m)}catch(e){}
   $("#modeTag").textContent=m==="demo"?"演示数据":"API 待接入";
@@ -522,10 +603,11 @@ function hitTarget(i){
   setTimeout(function(){el.classList.remove("hit")},950);
   if(!t.mod)return; /* 非频道目标只闪烁 */
   var pool=MODULES[t.mod].data;
-  if(!pool.length)return; var item=pool[Math.floor(Math.random()*pool.length)];
+  var item=pool[Math.floor(Math.random()*pool.length)];
   addHit(item,t.mod);
 }
 function addHit(item,mod){
+  if(!item||MODE!=="demo")return;
   hitCount++;$("#hitTotal").textContent=hitCount;
   var list=$("#hitList");
   var div=document.createElement("div");div.className="hit-item";
@@ -570,8 +652,8 @@ var current="#/";
 function navigate(hash){
   if(!["#/","#/settings","#/hotel","#/flight","#/meituan","#/taobao"].includes(hash))hash="#/";
   if(location.hash!==hash){location.hash=hash;return;}
+
   current=hash;
-  if(typeof panel!=="undefined"&&panel)panel.style.display=hash==="#/settings"?"none":"";
   document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active")});
   var home=hash==="#/";
   $("#view-home").classList.toggle("active",home);
@@ -603,7 +685,7 @@ function renderHome(){
   var eg=$("#entryGrid");eg.innerHTML="";
   Object.keys(MODULES).forEach(function(k){
     var m=MODULES[k];var d=m.data;
-    var card=document.createElement("div");card.className="entry-card";card.setAttribute("data-nav","#/"+k);card.setAttribute("tabindex","0");card.setAttribute("role","button");
+    var card=document.createElement("div");card.className="entry-card";card.setAttribute("data-nav","#/"+k);
     card.innerHTML=
       '<span class="ec-bg" style="background:'+m.color+'"></span>'+
       '<span class="ec-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+m.color+'" stroke-width="2">'+(k==="hotel"?'<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>':k==="flight"?'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>':k==="meituan"?'<path d="M3 11h18M12 11V4M7 11v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6"/>':'<path d="M20.6 13.4 11 3.8 3 5l1.2 8 9.6 9.6a2 2 0 0 0 2.8 0l4-4a2 2 0 0 0 0-2.2z"/><circle cx="7.5" cy="7.5" r="1.5"/>')+'</svg></span>'+
@@ -648,7 +730,15 @@ function applyFilter(sub){
   var s=subState[sub],d=MODULES[sub].data;
   var out=d.slice();
   if(sub==="hotel"){if(s.tier)out=out.filter(function(x){return x.tier===s.tier});if(s.type)out=out.filter(function(x){return x.type===s.type})}
-  if(sub==="flight"){if(s.to)out=out.filter(function(x){return x.to===s.to});if(s.date)out=out.filter(function(x){return x.date===s.date})}
+  if(sub==="flight"){
+    if(s.to)out=out.filter(function(x){return x.to===s.to});
+    if(s.date){
+      var base=new Date(Date.now()+8*3600000).toISOString().slice(0,10);
+      var tomorrow=new Date(Date.parse(base+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+      var weekEnd=new Date(Date.parse(base+'T00:00:00Z')+(7-(new Date(base+'T00:00:00Z').getUTCDay()||7))*86400000).toISOString().slice(0,10);
+      out=out.filter(function(x){return s.date==='今天'?x.date===base:s.date==='明天'?x.date===tomorrow:x.date>=base&&x.date<=weekEnd});
+    }
+  }
   if(sub==="meituan"){if(s.cat)out=out.filter(function(x){return x.category===s.cat});if(s.disc==="7")out=out.filter(function(x){return parseFloat(x.discount)<7});if(s.disc==="5")out=out.filter(function(x){return parseFloat(x.discount)<=5})}
   if(sub==="taobao"){if(s.disc==="100")out=out.filter(function(x){return x.coupon>=100});if(s.disc==="60")out=out.filter(function(x){return x.coupon>=60&&x.coupon<100})}
   return out;
@@ -660,9 +750,9 @@ function sortItems(sub,arr){
     if(sub==="hotel")return a.price-b.price;
     if(sub==="flight"&&k==="disc")return parseFloat(a.discount)-parseFloat(b.discount);
     if(sub==="flight")return a.price-b.price;
-    if(sub==="meituan"&&k==="sales")return salesValue(b.sales)-salesValue(a.sales);
+    if(sub==="meituan"&&k==="sales")return salesNumber(b.sales)-salesNumber(a.sales);
     if(sub==="meituan")return parseFloat(a.discount)-parseFloat(b.discount);
-    if(sub==="taobao"&&k==="sales")return salesValue(b.sales)-salesValue(a.sales);
+    if(sub==="taobao"&&k==="sales")return salesNumber(b.sales)-salesNumber(a.sales);
     return b.coupon-a.coupon;
   });
   return arr;
@@ -673,7 +763,6 @@ function renderSub(sub){
   $("#chartTitle").textContent=meta.chartTitle;
   $("#chartTitle").style.color="";
   drawChart(sub);
-  document.querySelector(".chart-card .tip").textContent=MODE==="demo"?"示例数据":"官方查询快照";
 
   var fb=$("#filterBar");fb.innerHTML="";
   var s=subState[sub];
@@ -682,6 +771,13 @@ function renderSub(sub){
     fb.appendChild(selOpt("fType",TYPES,s.type,"类型"));
   }else if(sub==="flight"){
     fb.appendChild(selOpt("fTo",FLIGHT_CITIES,s.to,"目的地"));
+    var dg=document.createElement("div");dg.className="f-group";
+    var lb=document.createElement("label");lb.textContent="出发日期";lb.setAttribute("for","fDate");
+    var dp=document.createElement("select");dp.className="f-control";dp.id="fDate";
+    [["今天","今天"],["明天","明天"],["本周内","本周内"]].forEach(function(v){
+      var o=document.createElement("option");o.value=v[1];o.textContent=v[0];if(s.date===v[1])o.selected=true;dp.appendChild(o);
+    });
+    dg.appendChild(lb);dg.appendChild(dp);fb.appendChild(dg);
   }else if(sub==="meituan"){
     fb.appendChild(selOpt("fCat",MT_CATS,s.cat,"品类"));
     fb.appendChild(selOpt("fDisc",["7","5"],s.disc,"折扣"));
@@ -702,7 +798,7 @@ function renderSub(sub){
   });
 
   var list=sortItems(sub,applyFilter(sub));
-  $("#resultMeta").textContent="共 "+list.length+" 条优惠 · "+(MODE==="demo"?"示例报价，非在售价格":"本机手动记录 / 已请求的官方报价")+"";
+  $("#resultMeta").textContent="共 "+list.length+" 条优惠 · 价格与优惠为演示数据";
   var g=$("#subGrid");g.innerHTML="";
   if(!list.length){
     g.innerHTML="<div class='empty'>没有符合筛选条件的优惠<br><b>换个档次 / 类型试试</b></div>";
@@ -719,6 +815,7 @@ function renderSub(sub){
       if(sel.id==="fTier")st.tier=sel.value;
       if(sel.id==="fType")st.type=sel.value;
       if(sel.id==="fTo")st.to=sel.value;
+      if(sel.id==="fDate"){st.date=sel.value;if(MODE==="demo")toast("原示例航班没有日期字段，不能当作当天航班；日期筛选只展示日期明确的数据","#FB923C");}
       if(sel.id==="fCat")st.cat=sel.value;
       if(sel.id==="fDisc")st.disc=sel.value;
       renderSub(sub);
@@ -727,7 +824,7 @@ function renderSub(sub){
   if(prefilter&&prefilter.mod===sub){subState[sub][prefilter.key]=prefilter.val;prefilter=null;renderSub(sub)}
 }
 function makeCard(item,sub){
-  var card=document.createElement("div");card.className="card";card.setAttribute("data-open",sub+"|"+item.id);card.setAttribute("tabindex","0");card.setAttribute("role","button");
+  var card=document.createElement("div");card.className="card";card.setAttribute("data-open",sub+"|"+item.id);
   var ic,meta;
   if(sub==="hotel"){
     ic='<path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/>';
@@ -747,7 +844,7 @@ function makeCard(item,sub){
   card.innerHTML=
     '<span class="thumb"><span class="t-bg" style="background:'+c+'"></span><span class="t-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.7">'+ic+'</svg></span></span>'+
     '<span class="c-main"><span class="c-name">'+esc(item.name)+'</span><span class="c-meta">'+meta+'</span>'+
-    '<span class="c-price"><span class="now num">¥'+yuan(item.price)+'<small>'+(sub==="hotel"?(MODE==="demo"?"/晚":"/入住区间"):"")+'</small></span><span class="old num">¥'+yuan(item.original)+'</span>'+
+    '<span class="c-price"><span class="now num">¥'+yuan(item.price)+'<small>'+(sub==="hotel"?"/晚":"")+'</small></span><span class="old num">¥'+yuan(item.original)+'</span>'+
     '<span class="pill tag-tag">'+esc(item.tag||item.discount||"")+'</span></span></span>'+
     '<span class="c-tags">'+tagHtml+'<span class="pill tag-disc">'+(sub==="meituan"?item.discount:sub==="flight"?item.discount:sub==="taobao"?"券¥"+item.coupon:Math.round(item.price/item.original*100)/10+"折")+'</span></span>';
   return card;
@@ -819,48 +916,74 @@ document.addEventListener("click",function(e){
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModal()});
 
-function salesValue(v){return parseFloat(v)*(String(v).includes('万')?10000:1)||0}
-function readStore(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}
-function saveStore(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('保存失败：浏览器存储不可用或空间不足','#FB923C');return false}}
-var demoData={hotel:HOTELS.slice(),flight:FLIGHTS.slice(),meituan:MEITUAN.slice(),taobao:TAOBAO.slice()};
-var liveData={hotel:[],flight:[],meituan:[],taobao:[]};
-var quotes=readStore('sr_quotes_v1',[]), favorites=readStore('sr_favs_v1',[]),prefs=readStore('sr_prefs_v1',{});
-if(!Array.isArray(quotes))quotes=[];if(!Array.isArray(favorites))favorites=[];
-var official={hotel:'https://hotels.ctrip.com/',flight:'https://flights.ctrip.com/',meituan:'https://www.meituan.com/',taobao:'https://www.taobao.com/'};
-function validUrl(s){try{var u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:''}catch(e){return ''}}
-var panel=document.createElement('section');panel.className='workspace';panel.innerHTML=`
-<div class="set-card"><h3>先找到，再比较</h3><p class="sc-desc">打开官方平台核对优惠。把同一商品、房型或航班的含税总价记下来，再比较。</p>
-<div class="tools"><button class="btn-main" id="realMode">实用模式</button><button class="btn-ghost" id="demoMode">查看示例</button><a class="btn-ghost" href="#/settings">接口与备份</a></div>
-<div class="form-grid"><label>频道<select id="workType" class="f-control"><option value="hotel">酒店</option><option value="flight">机票</option><option value="meituan">美团</option><option value="taobao">淘宝</option></select></label><label>关键词 / 酒店 / 商品<input id="keyword" class="f-control" maxlength="100" placeholder="例如：广州塔 双床房"></label><label>出发城市三字码<input id="fromCode" class="f-control" value="CAN" maxlength="3"></label><label>到达城市三字码<input id="toCode" class="f-control" value="BJS" maxlength="3"></label><label>入住 / 出发日期<input type="date" id="startDate" class="f-control"></label><label>离店日期<input type="date" id="endDate" class="f-control"></label><label>飞猪标准酒店 ID<input id="hotelIds" class="f-control" placeholder="多个ID以逗号分隔" maxlength="500"></label></div>
-<div class="tools"><button class="btn-main" id="queryLive">接口状态</button><a class="btn-ghost" id="openOfficial" target="_blank" rel="noopener noreferrer">打开官方平台</a><button class="btn-ghost" id="copyKeyword">复制搜索条件</button></div><div class="notice" id="queryStatus" role="status">此版本可独立使用报价本、收藏与备份；实时报价接口尚未接通。打开官方平台查看价格后，可在下方记录比较。</div></div>
-<div class="set-card"><h3>我的报价本</h3><p class="sc-desc">同一比较组应使用相同日期、人数、规格、退改条件及税费口径。以下为手动记录，不自动更新。</p><form id="quoteForm"><div class="form-grid"><label>比较组<input id="qGroup" class="f-control" required maxlength="100" placeholder="同款 / 同房型 / 同航班"></label><label>报价名称<input id="qName" class="f-control" required maxlength="120"></label><label>平台<input id="qPlatform" class="f-control" required maxlength="40" placeholder="飞猪 / 携程 / 美团等"></label><label>最终应付总价（元）<input id="qPrice" type="number" min="0.01" max="99999999" step="0.01" class="f-control" required></label><label>使用日期<input id="qDate" type="date" class="f-control" required></label><label>商品链接（HTTPS，可选）<input id="qUrl" type="url" class="f-control" maxlength="2000"></label><label>条件备注<input id="qNote" class="f-control" maxlength="200" placeholder="含税 / 早餐 / 退款 / 运费"></label></div><button class="btn-ghost" type="submit">保存报价</button></form><div class="tools"><input id="quoteSearch" class="f-control" placeholder="搜索比较组或报价"><select id="quoteSort" class="f-control"><option value="price">价格从低到高</option><option value="time">最近记录优先</option></select></div><div id="quoteList"></div></div>
-<div class="set-card"><h3>我的收藏</h3><div id="favList"></div></div>`;
-document.querySelector('.topbar').after(panel);
-function todayPlus(n){var d=new Date(Date.now()+8*3600000);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
-['startDate','qDate'].forEach(k=>$('#'+k).value=todayPlus(0));$('#endDate').value=todayPlus(1);
-['workType','keyword','fromCode','toCode','startDate','endDate','hotelIds'].forEach(k=>{if(typeof prefs[k]==='string')$('#'+k).value=prefs[k];$('#'+k).addEventListener('change',()=>{prefs[k]=$('#'+k).value;saveStore('sr_prefs_v1',prefs);updateOfficial()})});
-function updateOfficial(){$('#openOfficial').href=official[$('#workType').value]}
-updateOfficial();
-$('#copyKeyword').onclick=async()=>{try{await navigator.clipboard.writeText([$('#keyword').value,$('#fromCode').value+' → '+$('#toCode').value,$('#startDate').value,$('#endDate').value].join(' '));toast('搜索条件已复制')}catch(e){toast('复制失败，请手动复制输入框中的内容')}};
-function setMode(m,silent){MODE=m==='demo'?'demo':'api';saveStore('sr_mode_v2',MODE);Object.keys(MODULES).forEach(k=>MODULES[k].data=MODE==='demo'?demoData[k]:liveData[k]);HOTELS=MODULES.hotel.data;FLIGHTS=MODULES.flight.data;MEITUAN=MODULES.meituan.data;TAOBAO=MODULES.taobao.data;FLIGHT_CITIES=[...new Set(FLIGHTS.map(x=>x.to))];$('#modeTag').textContent=MODE==='demo'?'示例 · 非真实价格':'实用模式';$('#hitList').innerHTML='';hitCount=0;$('#hitTotal').textContent='0';renderHome();if(MOD_META[current.slice(2)])renderSub(current.slice(2));if(!silent)toast(MODE==='demo'?'正在展示示例数据':'已切换实用模式');}
-$('#realMode').onclick=()=>setMode('api');$('#demoMode').onclick=()=>setMode('demo');
-MODE=readStore('sr_mode_v2','api');
-function renderQuotes(){var list=quotes.filter(x=>(x.group+' '+x.name+' '+x.platform).toLowerCase().includes($('#quoteSearch').value.toLowerCase()));list.sort((a,b)=>$('#quoteSort').value==='time'?b.created-a.created:a.price-b.price);$('#quoteList').innerHTML='';if(!list.length){$('#quoteList').textContent='还没有报价。保存后可自动按价格排序。';return}list.forEach(q=>{var same=quotes.filter(x=>x.group===q.group&&x.date===q.date&&x.mod===q.mod),min=Math.min(...same.map(x=>x.price));var d=document.createElement('div');d.className='compare-row';d.innerHTML='<span><b>'+esc(q.name)+'</b><br>'+esc(q.group)+' · '+esc(q.platform)+'<br>'+esc(q.date)+' · '+esc(q.note||'')+'</span><span style="color:var(--orange)">¥'+yuan(q.price)+(q.price===min&&same.length>1?' · 组内最低':'')+'<br><small>手动记录 · '+new Date(q.created).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})+'</small></span>';var controls=document.createElement('span');if(validUrl(q.url)){var a=document.createElement('a');a.className='btn-ghost';a.textContent='查看链接';a.href=validUrl(q.url);a.target='_blank';a.rel='noopener noreferrer';controls.append(a)}var b=document.createElement('button');b.className='btn-ghost';b.textContent='删除';b.onclick=()=>{var next=quotes.filter(x=>x.id!==q.id);if(saveStore('sr_quotes_v1',next)){quotes=next;renderQuotes()}};controls.append(b);d.append(controls);$('#quoteList').append(d)})}
-$('#quoteForm').onsubmit=e=>{e.preventDefault();var url=$('#qUrl').value.trim();if(url&&!validUrl(url))return toast('商品链接需要使用 HTTPS');var q={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)),mod:$('#workType').value,group:$('#qGroup').value.trim(),name:$('#qName').value.trim(),platform:$('#qPlatform').value.trim(),price:Number($('#qPrice').value),date:$('#qDate').value,url:validUrl(url),note:$('#qNote').value.trim(),created:Date.now()};if(!q.name||!q.group||!q.platform||!Number.isFinite(q.price)||q.price<=0)return toast('请填写完整报价');var next=[q,...quotes];if(saveStore('sr_quotes_v1',next)){quotes=next;renderQuotes();toast('报价已保存')}};
-$('#quoteSearch').oninput=renderQuotes;$('#quoteSort').onchange=renderQuotes;renderQuotes();
-function renderFavs(){$('#favList').innerHTML='';if(!favorites.length)$('#favList').textContent='打开报价详情后可收藏；示例收藏会单独标明。';favorites.forEach(f=>{var d=document.createElement('div');d.className='compare-row';var span=document.createElement('span');span.textContent=f.name+' · ¥'+yuan(f.price)+' · '+(f.demo?'示例':'官方报价快照');var b=document.createElement('button');b.className='btn-ghost';b.textContent='取消收藏';b.onclick=()=>{var next=favorites.filter(x=>x.key!==f.key);if(saveStore('sr_favs_v1',next)){favorites=next;renderFavs()}};d.append(span,b);$('#favList').append(d)})}renderFavs();
-var originalDetail=openDetail;openDetail=function(sub,id){originalDetail(sub,id);var item=MODULES[sub].data.find(x=>x.id===id);if(!item)return;var demo=MODE==='demo',key=(demo?'demo:':'live:')+sub+':'+id;$('#modalBox .m-sub').textContent=MODULES[sub].name+' · '+(demo?'示例（非在售价格）':'官方查询快照');$('#modalBox .m-note').textContent=demo?'这是示例报价，官方按钮只打开频道入口，不代表存在此优惠。':'查询时间：'+(item.updatedAt||'未知')+'。价格为快照，税费、库存、优惠条件与最终应付金额请在官方确认。';$('#mFav').replaceWith($('#mFav').cloneNode(true));$('#mGo').replaceWith($('#mGo').cloneNode(true));$('#mFav').textContent=favorites.some(x=>x.key===key)?'已收藏':'加入收藏';$('#mFav').onclick=()=>{if(favorites.some(x=>x.key===key))return toast('已在收藏中');var next=[{key,name:item.name,price:item.price,demo,mod:sub},...favorites];if(saveStore('sr_favs_v1',next)){favorites=next;renderFavs();$('#mFav').textContent='已收藏'}};$('#mGo').textContent='打开官方频道';$('#mGo').onclick=()=>window.open(official[sub],'_blank','noopener,noreferrer');document.body.style.overflow='hidden';$('#mClose').focus()};var originalClose=closeModal;closeModal=function(){originalClose();document.body.style.overflow=''};
-var nativeRenderSub=renderSub;renderSub=function(sub){nativeRenderSub(sub);if(!MODULES[sub].data.length){$('#chartBox').innerHTML='<div class="notice">暂无可统计的官方报价。</div>';$('#subGrid').innerHTML='<div class="empty">尚未接通实时报价。请打开官方平台后，在上方报价本记录和比较；也可切换示例体验界面。</div>'}};
+/* ===== 设置页：沿用原控件 ===== */
 function renderSettings(){
-  $('#apiReport').textContent='当前为 GitHub Pages 静态网页。页面、报价本、收藏和备份无需后端即可使用。飞猪、美团、淘宝实时报价均未接通；不会向本站不存在的 /api/ 地址发起请求。需要实时报价时，须另行部署后端并配置平台授权。';
+  $("#modeSwitch").classList.toggle("on",MODE==="demo");
+  $("#modeSwitch").setAttribute("aria-checked",MODE==="demo");
+  document.querySelectorAll(".api-item input").forEach(function(inp){
+    try{inp.value=localStorage.getItem("sr_key_"+inp.getAttribute("data-key"))||""}catch(e){}
+  });
 }
-$('#checkApi').onclick=renderSettings;
-$('#queryLive').onclick=()=>{navigate('#/settings');renderSettings()};
-['fromCode','toCode','hotelIds'].forEach(id=>$('#'+id).closest('label').hidden=true);
-$('#exportData').onclick=()=>{var blob=new Blob([JSON.stringify({version:1,quotes,favorites,prefs},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='省钱雷达备份-'+todayPlus(0)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-$('#importData').onchange=async e=>{try{var f=e.target.files[0];if(!f)return;if(f.size>2000000)throw Error('备份不能超过2MB');var d=JSON.parse(await f.text());if(d.version!==1||!Array.isArray(d.quotes)||!Array.isArray(d.favorites)||d.quotes.length>5000||d.favorites.length>5000)throw Error('备份格式错误');var qs=d.quotes.map(q=>{if(!q||typeof q.id!=='string'||typeof q.group!=='string'||typeof q.name!=='string'||typeof q.platform!=='string'||!Number.isFinite(q.price)||q.price<=0||!/^\d{4}-\d{2}-\d{2}$/.test(q.date)||!Number.isFinite(q.created)||!MODULES[q.mod])throw Error('报价数据无效');return {...q,url:validUrl(q.url),note:String(q.note||'').slice(0,200)}});var fs=d.favorites.map(f=>{if(!f||typeof f.key!=='string'||typeof f.name!=='string'||!Number.isFinite(f.price))throw Error('收藏格式错误');return {key:f.key,name:f.name,price:f.price,demo:!!f.demo,mod:f.mod}});var mergedQ=[...new Map([...quotes,...qs].map(x=>[x.id,x])).values()],mergedF=[...new Map([...favorites,...fs].map(x=>[x.key,x])).values()];if(!saveStore('sr_quotes_v1',mergedQ)||!saveStore('sr_favs_v1',mergedF))throw Error('存储失败');quotes=mergedQ;favorites=mergedF;renderQuotes();renderFavs();$('#backupMessage').textContent='已合并导入报价和收藏，重复记录已去重。'}catch(err){$('#backupMessage').textContent='导入失败：'+err.message}finally{e.target.value=''}};
-// Remove obsolete plaintext AppKey fields from the old prototype.
-['hotel','flight'].forEach(k=>{try{localStorage.removeItem('sr_key_'+k)}catch(e){}});
+$("#modeSwitch").addEventListener("click",function(){setMode(MODE==="demo"?"api":"demo")});
+document.querySelectorAll(".ai-save").forEach(function(b){
+  b.addEventListener("click",function(){
+    var k=b.getAttribute("data-save"),inp=document.querySelector('input[data-key="'+k+'"]');
+    if(!inp||!inp.value.trim()){toast("请先填写 AppKey","#FB923C");return}
+    if(storeValue("sr_key_"+k,inp.value.trim()))toast("AppKey 已保存在本机。本站尚未连接接口后端，仅保存 AppKey 不能获得实时报价。","#FB923C");
+  });
+});
+function storeValue(k,v){try{localStorage.setItem(k,v);return true}catch(e){toast("保存失败：浏览器存储不可用","#FB923C");return false}}
+function loadValue(k,fallback){try{return JSON.parse(localStorage.getItem(k))??fallback}catch(e){return fallback}}
+function salesNumber(v){return (parseFloat(v)||0)*(String(v).includes('万')?10000:String(v).includes('亿')?100000000:1)}
+var originalData={hotel:HOTELS,flight:FLIGHTS,meituan:MEITUAN,taobao:TAOBAO};
+var nativeSetMode=setMode;
+setMode=function(m,silent){
+  m=m==='api'?'api':'demo';
+  Object.keys(MODULES).forEach(function(k){MODULES[k].data=m==='demo'?originalData[k]:[]});
+  HOTELS=MODULES.hotel.data;FLIGHTS=MODULES.flight.data;MEITUAN=MODULES.meituan.data;TAOBAO=MODULES.taobao.data;
+  nativeSetMode(m,true);hitCount=0;$('#hitTotal').textContent='0';$('#hitList').innerHTML='';
+  renderHome();if(MOD_META[current.replace('#/','')])renderSub(current.replace('#/',''));
+  if(!silent)toast(m==='demo'?'已切换为演示数据':'真实接口尚未接通，已隐藏全部模拟报价。GitHub Pages 需要另接服务端才能查询。',m==='demo'?'#38BDF8':'#FB923C');
+};
+var savedFavs=loadValue('sr_favs_original_v1',[]);
+if(!Array.isArray(savedFavs))savedFavs=[];
+var nativeOpenDetail=openDetail;
+openDetail=function(sub,id){
+  nativeOpenDetail(sub,id);
+  var item=MODULES[sub].data.find(function(x){return x.id===id});if(!item)return;
+  var key=sub+':'+id,button=$('#mFav'),go=$('#mGo');
+  button.replaceWith(button.cloneNode(true));go.replaceWith(go.cloneNode(true));
+  button=$('#mFav');go=$('#mGo');
+  function refreshFav(){var selected=savedFavs.some(function(f){return f.key===key});button.textContent=selected?'已收藏 · 点击取消':'加入收藏';button.setAttribute('aria-pressed',String(selected))}
+  refreshFav();
+  button.onclick=function(){
+    var selected=savedFavs.some(function(f){return f.key===key});
+    var next=selected?savedFavs.filter(function(f){return f.key!==key}):savedFavs.concat([{key:key,mod:sub,id:id,name:item.name,price:item.price,demo:MODE==='demo'}]);
+    if(storeValue('sr_favs_original_v1',JSON.stringify(next))){savedFavs=next;refreshFav();toast(selected?'已取消收藏':'已保存收藏，刷新后仍保留','#34D399')}
+  };
+  go.onclick=function(){
+    var urls={hotel:'https://www.fliggy.com/',flight:'https://www.fliggy.com/',meituan:'https://www.meituan.com/',taobao:'https://www.taobao.com/'};
+    window.open(urls[sub],'_blank','noopener,noreferrer');
+    toast('已打开官方平台入口；示例商品和价格不代表真实在售优惠','#FB923C');
+  };
+};
+var nativeRenderSub=renderSub;
+renderSub=function(sub){
+  nativeRenderSub(sub);
+  if(MODE==='api'){
+    $('#chartBox').textContent='实时报价接口尚未接通';
+    $('#resultMeta').textContent='共 0 条真实报价 · 接口未接通';
+    $('#subGrid').innerHTML='<div class="empty">实时报价接口尚未接通<br><b>请在数据源设置查看接入要求</b></div>';
+  }
+  storeValue('sr_filters_original_v1',JSON.stringify({state:subState,sort:subSort}));
+};
+var filterPrefs=loadValue('sr_filters_original_v1',null);
+if(filterPrefs&&filterPrefs.state&&filterPrefs.sort){
+  Object.keys(subState).forEach(function(k){
+    if(filterPrefs.state[k]&&typeof filterPrefs.state[k]==='object')Object.keys(subState[k]).forEach(function(p){if(typeof filterPrefs.state[k][p]==='string')subState[k][p]=filterPrefs.state[k][p]});
+    if(typeof filterPrefs.sort[k]==='string')subSort[k]=filterPrefs.sort[k];
+  });
+}
 
 /* ===== 启动 ===== */
 placeTargets();
