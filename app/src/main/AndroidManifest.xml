@@ -1,0 +1,53 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+ <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+ <uses-permission android:name="android.permission.VIBRATE"/>
+ <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
+ <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove"/>
+ <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove"/>
+ <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+ <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+ <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+ <application android:label="有谱" android:theme="@style/AppTheme" android:icon="@drawable/ic_next" android:allowBackup="false" android:supportsRtl="true">
+  <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
+  <activity android:name=".ActivationActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
+  <activity android:name=".PrivacyCenter" android:exported="false"/>
+  <activity android:name=".ReceiptConsentActivity" android:exported="false" android:excludeFromRecents="true"/>
+
+  <activity android:name=".ReceiptActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
+  <activity android:name=".ReceiptActivity$Shared" android:exported="true" android:label="有谱记账"
+      android:windowSoftInputMode="adjustResize">
+   <intent-filter>
+    <action android:name="android.intent.action.SEND"/>
+    <category android:name="android.intent.category.DEFAULT"/>
+    <data android:mimeType="text/plain"/>
+   </intent-filter>
+   <intent-filter>
+    <action android:name="android.intent.action.SEND"/>
+    <category android:name="android.intent.category.DEFAULT"/>
+    <data android:mimeType="image/*"/>
+   </intent-filter>
+  </activity>
+
+  <activity android:name=".LockEditActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@android:style/Theme.Material.NoActionBar"/>
+  <activity android:name=".LockStyleActivity" android:exported="false"/>
+  <activity android:name=".LockPanelActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@style/NextLockPanelTheme"/>
+  <activity android:name=".ReceiptTile$Launch" android:exported="false"
+    android:excludeFromRecents="true" android:taskAffinity="com.biu.next.receipt_tile"
+    android:theme="@style/ReceiptTileTheme"/>
+  <service android:name=".ReceiptTile" android:label="有谱记账" android:icon="@drawable/ic_tab_money"
+    android:exported="true" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+   <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE"/></intent-filter>
+  </service>
+  <service android:name=".LockPanelService" android:label="@string/next_lock_overlay_name"
+    android:exported="true" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+   <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+   <meta-data android:name="android.accessibilityservice" android:resource="@xml/next_lock_overlay"/>
+  </service>
+  <service android:name=".LockPanelKeepAlive" android:exported="false"
+    android:stopWithTask="false" android:foregroundServiceType="specialUse">
+   <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Keeps the user's enabled lock screen planner cards responsive while NEXT is in the background"/>
+  </service>
+  <receiver android:name=".SyncReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.TIME_SET"/><action android:name="android.intent.action.TIMEZONE_CHANGED"/></intent-filter></receiver>
+  <receiver android:name=".NextWidget" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info"/></receiver>
+ </application>
+</manifest>
